@@ -107,3 +107,9 @@
 - **背景**：通道顺序、色温范围、输出范围三项校验原先都写到 `errors["base"]`，同时出错时只显示最后一个。这三个字段都在「高级参数」section 里，而 HA 前端不会把错误传进 section 内部的字段（`ha-form-expandable` 不传 `error`），按字段名挂错误不会显示。
 - **决定**：通道顺序错误放 `base`（它和灯具类型共同决定，显示在表单顶部）；色温/输出范围错误挂在 section 名 `advanced` 上（前端在该 section 旁显示）；两者同时出错时用合并的错误文案 `invalid_kelvin_and_output_range`。
 - **理由/代价**：不改表单结构即可让所有错误同时可见；代价是多一条组合文案，以后在 section 里再加校验项时需要同样处理。
+
+## D-018 仓库公开，采用 Apache-2.0 许可证
+- **日期**：2026-09-19 · **状态**：采纳
+- **背景**：CI 的 HACS 检查一直失败：私有仓库下 hacs/action 读不到 `hacs.json` 和 manifest（报 `Got None`），另外还缺 LICENSE 和 topics。HACS 本身也只能安装公开仓库。
+- **决定**：GitHub 仓库改为公开；添加 Apache-2.0 LICENSE（与 Home Assistant 一致）；topics 设为 hacs / home-assistant / homeassistant / hacs-integration / artnet / dmx。CI 仍然跳过 brands 检查。
+- **理由/代价**：公开后 CI 全绿，可通过 HACS 自定义存储库安装。代价：`CLAUDE.md`、`Plan.md` 及其历史中的内网测试机地址、容器名一并公开（均为局域网私有地址，未包含任何凭据）。
