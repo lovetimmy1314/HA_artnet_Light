@@ -51,6 +51,17 @@ HACS 可安装的 Home Assistant 自定义集成 `artnet_light`：
 - [x] 关灯状态下重启会丢失上次亮度/颜色 → 用 `ExtraStoredData` 保存（v0.1.3，D-014）
 - [ ] （可选）接真实 Art-Net 节点 / QLC+ 监视验证
 
+### 审查发现（2026-09-19，v0.1.3）
+验证：核心测试 21/21（本机）；HA 测试 6/6 在 HA 2026.9.2（py3.14）和 2024.12.0（py3.12）通过，无弃用警告；**HA 2024.11.3 上 1 项失败**。
+- [ ] **[高] 声明的最低版本 2024.11 实际不可用**：2024.11 的 OptionsFlow 不会自动注入 `config_entry`，打开「配置」直接报 `AttributeError`，无法添加灯具。方案：最低版本提到 2024.12.0（改 hacs.json / README / 本文件 / CLAUDE.md，记 D-015），或写兼容代码。待确认（与采访确认的“最低 2024.11”冲突）
+- [ ] **[高] 删除/移走灯具后可能常亮**：某个 Universe 上已没有灯具（删掉最后一个灯具、改了 Universe、删除/禁用整个节点条目）时，控制器不再发送这个 Universe，多数节点会保持最后一帧 → 灯一直亮着。方案：卸载时对“消失的 Universe”补发一帧全 0
+- [ ] [中] 修改灯具时「通道顺序」预填为规范化后的默认值（如 `RGB`），改灯具类型（RGB→RGBW）必然报 `invalid_order`，必须手动清空。方案：只在与默认值不同时预填
+- [ ] [低] 渐变任务用 `loop.create_task` 创建，不受 HA 管理（同 D-012 的问题）
+- [ ] [低] 表单多个错误都写 `errors["base"]`，只显示最后一个
+- [ ] [低] `edit_fixture` 翻译缺少 universe / bits / 最小最大输出的说明（`add_fixture` 有）
+- [ ] 测试缺口：修改灯具（非删除）、发送设置、CCT/RGBW/RGBWW/16 位经实体输出、渐变、手动添加重复节点
+- [ ] CI：只在 py3.13（HA 2026.2.x）上跑，建议加矩阵：最低版本 + 最新版本；推到 GitHub 前确认 HACS action 的 brands 检查（未收录到 home-assistant/brands 会失败，可 `ignore: brands`）
+
 ## 验证方法
 1. `pytest tests/test_core.py -p no:homeassistant` —— 协议字节、灯具换算、发送器（本机即可）
 2. `pytest tests/ha`（在 Linux 测试机 192.168.1.167 的一次性 python:3.14 容器里跑，命令见 CLAUDE.md）—— 配置流/选项流/实体

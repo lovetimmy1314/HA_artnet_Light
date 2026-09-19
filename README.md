@@ -59,12 +59,14 @@
 ```bash
 # 与 HA 无关的核心逻辑（协议、灯具换算、发送器），任意 Python >= 3.11
 pip install pytest
-pytest tests/test_core.py
+python -m pytest tests/test_core.py -q -p no:homeassistant
 
-# 配置流测试，需要 Linux + Python >= 3.12
+# 配置流 / 选项流 / 实体测试，需要 Linux + Python >= 3.12（pytest.ini 只收集 tests/ha）
 pip install -r requirements_test.txt
-pytest
+python -m pytest -q tests/ha
 ```
+
+两组测试必须分两次运行：HA 的 pytest 插件会禁用 socket、替换事件循环，会让核心层的 UDP 测试失败。
 
 `tools/fake_node.py` 是一个模拟 Art-Net 节点：它会应答 ArtPoll，并打印收到的 DMX 数据。在 HA 所在局域网的另一台电脑上运行：
 
