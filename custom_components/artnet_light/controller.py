@@ -45,6 +45,7 @@ class ArtNetController:
         self._wake = asyncio.Event()
         self._transport: asyncio.DatagramTransport | None = None
         self._sender: asyncio.Task | None = None
+        self._create_task: Callable[[Coroutine[Any, Any, None], str], asyncio.Task] | None = None
         self._levels: dict[str, list[float]] = {}
         self._fades: dict[str, asyncio.Task] = {}
 
@@ -67,12 +68,14 @@ class ArtNetController:
         `create_task(coro, name)` lets the host own the task (Home Assistant passes
         entry.async_create_background_task so it is cancelled on unload/shutdown).
         """
+        self._create_task = create_task
         if self._sender is None:
-            coro = self._run()
-            if create_task:
-                self._sender = create_task(coro, f"artnet sender {self.host}")
-            else:
-                self._sender = asyncio.get_running_loop().create_task(coro)
+            self._sender = self._spawn(self._run(), f"artnet sender {self.host}")
+
+    def _spawn(self, coro: Coroutine[Any, Any, None], name: str) -> asyncio.Task:
+        if self._create_task:
+            return self._create_task(coro, name)
+        return asyncio.get_running_loop().create_task(coro, name=name)
 
     async def async_stop(self) -> None:
         tasks = [*self._fades.values()]
@@ -105,6 +108,17 @@ class ArtNetController:
         self._dirty.add(universe)
         self._wake.set()
 
+    @property
+    def universes(self) -> set[int]:
+        """Universes that have been written to (and are therefore transmitted)."""
+        return set(self._buffers)
+
+    def blackout(self, universes: set[int]) -> None:
+        """Zero these universes and send them right away, without waiting for the loop."""
+        for universe in universes:
+            self._buffers[universe] = bytearray(DMX_UNIVERSE_SIZE)
+            self._send(universe)
+
     def universe_data(self, universe: int) -> bytes:
         return bytes(self._buffers.get(universe, bytearray(DMX_UNIVERSE_SIZE)))
 
@@ -120,8 +134,8 @@ class ArtNetController:
             self._write(fixture, levels)
             return
 
-        self._fades[fixture.id] = asyncio.get_running_loop().create_task(
-            self._fade(fixture, list(current), list(levels), transition)
+        self._fades[fixture.id] = self._spawn(
+            self._fade(fixture, list(current), list(levels), transition), f"artnet fade {fixture.id}"
         )
 
     def _write(self, fixture: Fixture, levels: list[float]) -> None:

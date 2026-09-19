@@ -63,7 +63,7 @@ from .const import (
     TYPE_RGB,
 )
 from .discovery import async_scan
-from .fixture import Fixture, find_overlap, normalize_order
+from .fixture import Fixture, default_order, find_overlap, normalize_order
 
 CONF_DEVICE = "device"
 MANUAL = "manual"
@@ -407,6 +407,10 @@ class ArtNetOptionsFlow(OptionsFlow):
         else:
             defaults = current.to_dict()
             defaults[CONF_FIXTURE_TYPE] = current.type
+            # Only pre-fill a custom order; the default one would turn into
+            # invalid_order as soon as the type is changed.
+            if current.channel_order == default_order(current.type, current.cct_mode):
+                defaults[CONF_CHANNEL_ORDER] = ""
 
         return self.async_show_form(
             step_id="edit_fixture",

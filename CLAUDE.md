@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project
 
-Home Assistant custom integration `artnet_light` (HACS, min HA 2024.11, Python ≥3.12 at runtime): discovers Art-Net nodes, and lets users add DMX fixtures (dimmer/CCT/RGB/RGBW/RGBWW) entirely through the config flow and options flow UI. User-facing docs are in Chinese; code/comments in English.
+Home Assistant custom integration `artnet_light` (HACS, targets the latest HA only — min 2026.9, D-015; Python ≥3.14 at runtime): discovers Art-Net nodes, and lets users add DMX fixtures (dimmer/CCT/RGB/RGBW/RGBWW) entirely through the config flow and options flow UI. User-facing docs are in Chinese; code/comments in English.
 
 ## Workflow (solo developer, agent-driven)
 
@@ -37,7 +37,7 @@ Core tests and HA tests **must be separate pytest invocations**: the HA pytest p
 python -m pytest tests/test_core.py -q -p no:homeassistant
 python -m pytest tests/test_core.py -q -p no:homeassistant -k cct     # single test / subset
 
-# HA flow tests on the Linux box. py3.14 resolves the same HA as production (2026.9.x); py3.13 caps at HA 2026.2.x.
+# HA flow tests on the Linux box. py3.14 resolves the same HA as production (2026.9.x); older Pythons cap at older HA — don't use them.
 tar --exclude=.git --exclude=__pycache__ -cf - . | ssh -o BatchMode=yes root@192.168.1.167 \
   'rm -rf /root/work/HA_artnet_Light && mkdir -p /root/work/HA_artnet_Light && tar -x -C /root/work/HA_artnet_Light'
 ssh -o BatchMode=yes root@192.168.1.167 'cd /root/work/HA_artnet_Light && docker run --rm --network host \
@@ -57,7 +57,7 @@ tar --exclude=__pycache__ -C custom_components -cf - artnet_light | ssh -o Batch
 ```
 Drive flows/services through the HA REST API (`/api/config/config_entries/flow`, `/api/config/config_entries/options/flow`, `/api/services/light/...`) with the token in `/root/.ha_token` on the server (never print it; the local copy `HAkey.md` is git-ignored). Run `tools/fake_node.py` on this Windows machine (192.168.1.136) to receive DMX. Git Bash needs `MSYS_NO_PATHCONV=1` so `/api/...` arguments aren't rewritten into Windows paths.
 
-CI (`.github/workflows/validate.yml`): hassfest, HACS validation, both pytest runs on Ubuntu/Py3.13.
+CI (`.github/workflows/validate.yml`): hassfest, HACS validation, both pytest runs on Ubuntu/Py3.14 (latest HA).
 
 ## Architecture
 
@@ -71,7 +71,8 @@ Data flow for a light command: `ArtNetLight.async_turn_on` → `Fixture.compute_
 Key cross-file facts:
 - **Storage**: one config entry per node. `entry.data` = host/port/name/mac/universes; `entry.options` = send settings + `fixtures` (list of `Fixture.to_dict()`). Fixture `id` (uuid) is the entity unique_id and the device identifier.
 - **Live updates**: any options save → update listener reloads the entry. `async_setup_entry` removes registry entities/devices for deleted fixtures, and calls `controller.async_start_sending()` only after platforms are set up, so restored states are in the buffer before the first frame (avoids flicker).
-- **Entities/devices**: each fixture is its own device, created in `async_setup_entry` and linked to the node device (identifier `entry_id`) via `async_update_device(via_device_id=...)` — not `DeviceInfo(via_device=...)`, which is deprecated (D-013). The entity's `DeviceInfo` only carries identifiers and `_attr_name = None`, so entity_id derives from the fixture name (`客厅灯带` → `light.ke_ting_deng_dai`).
+- **Entities/devices**: each fixture is its own device, created in `async_setup_entry` with `async_get_or_create(via_device_id=<node device id>)` — not `DeviceInfo(via_device=...)`, which is deprecated (D-013, D-015). The entity's `DeviceInfo` only carries identifiers and `_attr_name = None`, so entity_id derives from the fixture name (`客厅灯带` → `light.ke_ting_deng_dai`).
+- **Unload/remove**: universes that no longer carry any fixture get one all-zero frame (`controller.blackout`), all of them when the entry is disabled; `async_remove_entry` blacks out a deleted node with a throwaway controller (D-016). Plain HA shutdown sends nothing, so lights keep their state across restarts.
 - **Discovery**: `async_setup` starts background ArtPoll every 5 min (only runs once any entry exists). Unique IDs: MAC via `format_mac` for discovered nodes, `host:port` for manual ones, plus `_async_abort_entries_match({host})` for cross-dedup.
 - **Channel order** strings (R G B W C I T) must be a permutation of the type's default in `fixture.DEFAULT_ORDER`; validation lives in `normalize_order`.
 

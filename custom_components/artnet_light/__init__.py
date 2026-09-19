@@ -58,18 +58,16 @@ async def async_setup_entry(hass: HomeAssistant, entry: ArtNetConfigEntry) -> bo
     )
     # Fixture devices are created here (not via the entity's DeviceInfo) so they can be
     # linked with via_device_id; DeviceInfo(via_device=...) is deprecated since HA 2026.x.
-    for data in options[CONF_FIXTURES]:
-        fixture = Fixture.from_dict(data)
-        device = device_registry.async_get_or_create(
+    for fixture in _fixtures(entry):
+        device_registry.async_get_or_create(
             config_entry_id=entry.entry_id,
             identifiers={(DOMAIN, fixture.id)},
             name=fixture.name,
             manufacturer="Art-Net",
             model=f"{fixture.type.upper()} {fixture.bits}-bit",
+            via_device_id=node.id,
         )
-        if device.via_device_id != node.id:
-            device_registry.async_update_device(device.id, via_device_id=node.id)
-    _async_remove_stale(hass, entry, {f["id"] for f in options[CONF_FIXTURES]})
+    _async_remove_stale(hass, entry, {f.id for f in _fixtures(entry)})
 
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
     # Entities have restored and written their levels; start transmitting.
@@ -79,6 +77,10 @@ async def async_setup_entry(hass: HomeAssistant, entry: ArtNetConfigEntry) -> bo
 
     entry.async_on_unload(entry.add_update_listener(_async_update_listener))
     return True
+
+
+def _fixtures(entry: ConfigEntry) -> list[Fixture]:
+    return [Fixture.from_dict(data) for data in {**DEFAULT_OPTIONS, **entry.options}[CONF_FIXTURES]]
 
 
 def _async_remove_stale(hass: HomeAssistant, entry: ConfigEntry, fixture_ids: set[str]) -> None:
@@ -104,5 +106,25 @@ async def _async_update_listener(hass: HomeAssistant, entry: ConfigEntry) -> Non
 async def async_unload_entry(hass: HomeAssistant, entry: ArtNetConfigEntry) -> bool:
     unloaded = await hass.config_entries.async_unload_platforms(entry, PLATFORMS)
     if unloaded:
-        await entry.runtime_data.async_stop()
+        controller = entry.runtime_data
+        # Universes nobody transmits any more would hold their last frame on most
+        # nodes: zero those (all of them when the entry is being disabled).
+        keep = set() if entry.disabled_by else {f.universe for f in _fixtures(entry)}
+        controller.blackout(controller.universes - keep)
+        await controller.async_stop()
     return unloaded
+
+
+async def async_remove_entry(hass: HomeAssistant, entry: ConfigEntry) -> None:
+    """Entry deleted: turn its fixtures off (the controller is already stopped)."""
+    if not (universes := {f.universe for f in _fixtures(entry)}):
+        return
+    controller = ArtNetController(
+        entry.data[CONF_HOST], entry.data[CONF_PORT], send_mode=DEFAULT_OPTIONS[CONF_SEND_MODE]
+    )
+    try:
+        await controller.async_start()
+    except OSError:
+        return
+    controller.blackout(universes)
+    await controller.async_stop()

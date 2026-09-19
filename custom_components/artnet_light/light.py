@@ -19,7 +19,7 @@ from homeassistant.components.light import (
 from homeassistant.const import STATE_ON
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.device_registry import DeviceInfo
-from homeassistant.helpers.entity_platform import AddEntitiesCallback
+from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
 from homeassistant.helpers.restore_state import ExtraStoredData, RestoreEntity
 
 from . import ArtNetConfigEntry
@@ -49,7 +49,7 @@ COLOR_MODES = {
 async def async_setup_entry(
     hass: HomeAssistant,
     entry: ArtNetConfigEntry,
-    async_add_entities: AddEntitiesCallback,
+    async_add_entities: AddConfigEntryEntitiesCallback,
 ) -> None:
     options = {**DEFAULT_OPTIONS, **entry.options}
     async_add_entities(

@@ -256,3 +256,21 @@ def test_controller_keepalive():
         transport.close()
 
     asyncio.run(run())
+
+
+def test_controller_blackout_sends_immediately():
+    async def run():
+        transport, rx, port = await _receiver()
+        ctl = ArtNetController("127.0.0.1", port, send_mode="on_change", keepalive=5)
+        await ctl.async_start()  # sender loop deliberately not started
+        ctl.set_channels(3, 1, b"\xff\xff")
+        assert ctl.universes == {3}
+        ctl.blackout({3, 4})
+        await asyncio.sleep(0.1)
+        assert {p[0] for p in rx.packets} == {3, 4}
+        assert all(p[2] == bytes(512) for p in rx.packets)
+        assert ctl.universe_data(3) == bytes(512)
+        await ctl.async_stop()
+        transport.close()
+
+    asyncio.run(run())

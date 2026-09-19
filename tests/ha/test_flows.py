@@ -18,6 +18,7 @@ from pytest_homeassistant_custom_component.common import (
 )
 
 from custom_components.artnet_light.artnet import ArtNetNode
+from custom_components.artnet_light.controller import ArtNetController
 from custom_components.artnet_light.const import DOMAIN
 
 NODE = ArtNetNode(ip="192.168.1.50", short_name="Node-A", mac="02:00:00:00:00:01", universes=[0, 1])
@@ -171,8 +172,6 @@ async def test_options_add_edit_delete_fixture(hass: HomeAssistant) -> None:
     assert hass.states.get("light.ke_ting_deng_dai") is None
     assert er.async_get(hass).async_get("light.ke_ting_deng_dai") is None
 
-
-
 def _entry_with_fixtures(hass: HomeAssistant, *fixtures: dict) -> MockConfigEntry:
     entry = MockConfigEntry(
         domain=DOMAIN,
@@ -232,3 +231,101 @@ async def test_restore_legacy_state_attributes(hass: HomeAssistant) -> None:
 
     assert hass.states.get("light.strip").state == "on"
     assert entry.runtime_data.universe_data(0)[:3] == bytes([255, 0, 0])
+
+
+async def _open_edit(hass: HomeAssistant, entry, fixture_id: str):
+    result = await hass.config_entries.options.async_init(entry.entry_id)
+    result = await hass.config_entries.options.async_configure(result["flow_id"], {"next_step_id": "select_fixture"})
+    return await hass.config_entries.options.async_configure(result["flow_id"], {"fixture": fixture_id})
+
+
+def _suggested(result, key: str):
+    for field, value in result["data_schema"].schema.items():
+        if field == "advanced":
+            for inner in value.schema.schema:
+                if inner == key:
+                    return (inner.description or {}).get("suggested_value")
+    raise KeyError(key)
+
+
+async def test_edit_fixture_change_type_with_default_order(hass: HomeAssistant) -> None:
+    """A default channel order is not pre-filled, so changing the type just works."""
+    entry = _entry_with_fixtures(hass, RGB_FIXTURE)
+    await hass.config_entries.async_setup(entry.entry_id)
+    await hass.async_block_till_done()
+
+    result = await _open_edit(hass, entry, "fx-rgb")
+    assert result["step_id"] == "edit_fixture"
+    assert not _suggested(result, "channel_order")
+
+    result = await hass.config_entries.options.async_configure(
+        result["flow_id"], {**FIXTURE_INPUT, "name": "Strip", "type": "rgbw", "bits": "16"}
+    )
+    assert result["type"] is FlowResultType.CREATE_ENTRY
+    await hass.async_block_till_done()
+
+    fixture = entry.options["fixtures"][0]
+    assert (fixture["id"], fixture["type"], fixture["channel_order"], fixture["bits"]) == ("fx-rgb", "rgbw", "RGBW", 16)
+    state = hass.states.get("light.strip")
+    assert state.attributes["dmx_end_channel"] == 8
+    assert state.attributes["supported_color_modes"] == ["rgbw"]
+
+    # a custom order is still offered for editing
+    result = await _open_edit(hass, entry, "fx-rgb")
+    result = await hass.config_entries.options.async_configure(
+        result["flow_id"], {**FIXTURE_INPUT, "name": "Strip", "type": "rgbw", "advanced": {**FIXTURE_INPUT["advanced"], "channel_order": "wrgb"}}
+    )
+    await hass.async_block_till_done()
+    result = await _open_edit(hass, entry, "fx-rgb")
+    assert _suggested(result, "channel_order") == "WRGB"
+
+
+async def test_send_settings(hass: HomeAssistant) -> None:
+    entry = _entry_with_fixtures(hass, RGB_FIXTURE)
+    await hass.config_entries.async_setup(entry.entry_id)
+    await hass.async_block_till_done()
+
+    result = await hass.config_entries.options.async_init(entry.entry_id)
+    result = await hass.config_entries.options.async_configure(result["flow_id"], {"next_step_id": "send_settings"})
+    result = await hass.config_entries.options.async_configure(
+        result["flow_id"], {"send_mode": "continuous", "keepalive": 2, "fps": 25, "default_transition": 1.5}
+    )
+    assert result["type"] is FlowResultType.CREATE_ENTRY
+    await hass.async_block_till_done()
+
+    assert entry.options["fixtures"] == [RGB_FIXTURE]
+    controller = entry.runtime_data
+    assert (controller.send_mode, controller.fps, controller.keepalive) == ("continuous", 25, 2)
+
+
+async def test_removed_universe_is_blacked_out(hass: HomeAssistant) -> None:
+    """Universes that lose their last fixture get a zero frame instead of holding the last look."""
+    other = {**CCT_FIXTURE, "universe": 1}
+    entry = _entry_with_fixtures(hass, RGB_FIXTURE, other)
+    await hass.config_entries.async_setup(entry.entry_id)
+    await hass.async_block_till_done()
+
+    with patch.object(ArtNetController, "blackout", autospec=True) as blackout:
+        # delete the only fixture on universe 1 -> reload blacks out universe 1 only
+        result = await _open_edit(hass, entry, "fx-cct")
+        result = await hass.config_entries.options.async_configure(
+            result["flow_id"], {**FIXTURE_INPUT, "type": "cct", "delete": True}
+        )
+        await hass.async_block_till_done()
+        assert blackout.call_args_list[-1].args[1] == {1}
+
+        # disabling the entry turns everything off
+        await hass.config_entries.async_set_disabled_by(
+            entry.entry_id, config_entries.ConfigEntryDisabler.USER
+        )
+        await hass.async_block_till_done()
+        assert blackout.call_args_list[-1].args[1] == {0}
+
+        await hass.config_entries.async_set_disabled_by(entry.entry_id, None)
+        await hass.async_block_till_done()
+
+        # removing the entry turns everything off, too
+        blackout.reset_mock()
+        await hass.config_entries.async_remove(entry.entry_id)
+        await hass.async_block_till_done()
+        assert [c.args[1] for c in blackout.call_args_list] == [set(), {0}]

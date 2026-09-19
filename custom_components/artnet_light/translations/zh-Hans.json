@@ -5,19 +5,27 @@
       "user": {
         "title": "添加 Art-Net 节点",
         "description": "在局域网中发现了 {count} 个 Art-Net 节点。请选择一个，或手动输入地址。",
-        "data": { "device": "节点" }
+        "data": {
+          "device": "节点"
+        }
       },
       "manual": {
         "title": "Art-Net 节点地址",
         "description": "输入 Art-Net 节点（网关）的 IP，也可以填广播地址，例如 192.168.1.255。",
-        "data": { "host": "网关 IP / 广播地址", "port": "端口", "name": "名称" }
+        "data": {
+          "host": "网关 IP / 广播地址",
+          "port": "端口",
+          "name": "名称"
+        }
       },
       "discovery_confirm": {
         "title": "发现 Art-Net 节点",
         "description": "是否添加 **{name}**（{host}，Universe：{universes}）？"
       }
     },
-    "error": { "invalid_host": "请输入有效的 IPv4 地址。" },
+    "error": {
+      "invalid_host": "请输入有效的 IPv4 地址。"
+    },
     "abort": {
       "already_configured": "该节点已经配置过了。",
       "already_in_progress": "该节点正在配置中。"
@@ -68,7 +76,9 @@
       },
       "select_fixture": {
         "title": "选择灯具",
-        "data": { "fixture": "灯具" }
+        "data": {
+          "fixture": "灯具"
+        }
       },
       "edit_fixture": {
         "title": "修改 {name}",
@@ -79,6 +89,10 @@
           "start_channel": "起始 DMX 通道 (1~512)",
           "bits": "精度",
           "delete": "删除此灯具"
+        },
+        "data_description": {
+          "universe": "15 位 Art-Net 端口地址（Net:SubNet:Universe），范围 0~32767。",
+          "bits": "16 位时每个颜色占两个通道（粗调 + 细调）。"
         },
         "sections": {
           "advanced": {
@@ -92,7 +106,9 @@
               "max_output": "最大 DMX 输出"
             },
             "data_description": {
-              "channel_order": "留空使用默认顺序。字母：R G B，W=（暖）白，C=冷白，I=亮度，T=色温。例：GRB、WC、RGBWC、TI。"
+              "channel_order": "留空使用默认顺序。字母：R G B，W=（暖）白，C=冷白，I=亮度，T=色温。例：GRB、WC、RGBWC、TI。",
+              "min_output": "最低非零亮度对应的 DMX 值。",
+              "max_output": "满亮度对应的 DMX 值。"
             }
           }
         }
@@ -119,10 +135,16 @@
       "channel_overflow": "该灯具将占用到第 {end} 通道，超出 512。",
       "channel_overlap": "通道与 {conflict} 重叠。"
     },
-    "abort": { "fixture_not_found": "该灯具已不存在。" }
+    "abort": {
+      "fixture_not_found": "该灯具已不存在。"
+    }
   },
   "selector": {
-    "device": { "options": { "manual": "手动输入地址…" } },
+    "device": {
+      "options": {
+        "manual": "手动输入地址…"
+      }
+    },
     "fixture_type": {
       "options": {
         "dimmer": "Dimmer（单色调光）",
@@ -132,7 +154,12 @@
         "rgbww": "RGBWW（RGB + 冷白 + 暖白）"
       }
     },
-    "bits": { "options": { "8": "8 位", "16": "16 位" } },
+    "bits": {
+      "options": {
+        "8": "8 位",
+        "16": "16 位"
+      }
+    },
     "cct_mode": {
       "options": {
         "cold_warm": "冷白 + 暖白 两路通道",

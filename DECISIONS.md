@@ -76,9 +76,10 @@
 - **日期**：2026-09-19 · **状态**：采纳
 - **背景**：用 `loop.create_task` 创建的发送循环 HA 不知道，关闭时不会被取消（在 HA 2026.9 的测试里报了 lingering task）。
 - **决定**：`ArtNetController.async_start_sending(create_task=None)`；HA 层传入 `entry.async_create_background_task`。核心层仍然不导入 HA（D-009），不传参数时退回 `loop.create_task`，本地测试照常可用。
+- **补充（v0.2.0）**：渐变任务也通过同一个 factory 创建。
 
 ## D-013 灯具设备在 setup_entry 中创建，用 via_device_id 挂到节点
-- **日期**：2026-09-19 · **状态**：采纳（补充 D-005）
+- **日期**：2026-09-19 · **状态**：采纳（补充 D-005）；兼容 2024.11 的写法已废弃 → D-015
 - **背景**：HA 2026.x 弃用了 `DeviceInfo(via_device=...)` / `async_get_or_create(via_device=...)`，2027.8 起失效；而 `async_get_or_create(via_device_id=...)` 在 2024.11 中还不存在。
 - **决定**：`async_setup_entry` 先建节点设备，再为每个灯具 `async_get_or_create` 设备，然后 `async_update_device(via_device_id=node.id)`（这个接口一直都有）。实体的 `DeviceInfo` 只带 `identifiers`。
 - **理由**：一套代码同时兼容最低版本和最新版本，不需要做版本判断。
@@ -88,3 +89,15 @@
 - **背景**：HA 关灯状态不带 brightness / rgb_color 等属性，只靠 `async_get_last_state()` 恢复时，关灯重启后再开灯会回到默认全亮白色。
 - **决定**：实体实现 `extra_restore_state_data`，保存亮度、rgb/rgbw/rgbww、色温；恢复时优先用它，没有（0.1.2 及更早保存的状态）才退回读状态属性。开关状态仍取自 `last.state`。
 - **理由/代价**：不改存储配置，无需迁移；每个实体在 `core.restore_state` 里多存几个字段。
+
+## D-015 只适配最新版 HA（最低 2026.9）
+- **日期**：2026-09-19 · **状态**：采纳（取代需求表里的“最低 HA 2024.11”）
+- **背景**：审查时在 HA 2024.11.3 上跑测试，选项流直接报错（2024.11 的 `OptionsFlow` 不会自动注入 `config_entry`，2024.12 起才会）。声明的最低版本其实从没验证过。
+- **决定**：用户确认只适配最新版。`hacs.json` 最低 2026.9.0，CI 和测试机都用 py3.14（解析到最新 HA）。可以直接用新 API：灯具设备用 `async_get_or_create(via_device_id=...)` 一步创建（原来为兼容 2024.11 先建再 `async_update_device`，见 D-013），平台回调类型用 `AddConfigEntryEntitiesCallback`。
+- **代价**：老版本 HA 的用户无法安装；以后 HA 弃用接口时直接跟进，不再做版本判断。
+
+## D-016 不再使用的 Universe 补发一帧全 0
+- **日期**：2026-09-19 · **状态**：采纳
+- **背景**：控制器只发送有灯具的 Universe。删掉某个 Universe 上最后一个灯具、把灯具改到别的 Universe、禁用或删除节点后，这个 Universe 不再发送，多数节点会保持最后一帧，灯一直亮着。
+- **决定**：`async_unload_entry` 时对“旧控制器发送过、新选项里已没有灯具”的 Universe 立即补发一帧全 0（`controller.blackout`）；条目被禁用时全部补发。删除节点时，`async_remove_entry` 临时开一个 socket 对所有灯具的 Universe 补发。
+- **理由/代价**：重载时仍在用的 Universe 不受影响，不会闪烁（D-004）。HA 正常关闭/重启不补发，灯保持原状态，重启后由恢复逻辑接管。只补发一帧，UDP 丢包时仍可能残留，可接受。
