@@ -21,7 +21,7 @@ Every completed code change is committed and tagged by the agent at the end of t
 1. Bump the version (SemVer): **patch** = fix/refactor/internal, **minor** = new feature or new option, **major** = breaking change to stored config (needs a config-entry migration).
 2. Update the version in `custom_components/artnet_light/manifest.json` (the single source of truth; must equal the tag).
 3. Add a section to `CHANGELOG.md` and tick/update `Plan.md` (and `DECISIONS.md` if applicable).
-4. Run `python -m pytest tests/test_core.py -q` first; don't tag a red build.
+4. Run `python -m pytest tests/test_core.py -q -p no:homeassistant` first (and the HA tests on the Linux box when HA-layer code changed); don't tag a red build.
 5. One commit, Conventional Commits prefix (`feat:` / `fix:` / `refactor:` / `test:` / `docs:` / `chore:`), then an annotated tag: `git tag -a vX.Y.Z -m "vX.Y.Z: <summary>"`.
 
 Doc-only changes (Plan/DECISIONS/README/CLAUDE.md) are committed with `docs:` but **not** version-bumped or tagged. Work on `main` directly (solo repo). Never push or create remotes/releases without asking — no remote is configured yet.
@@ -52,7 +52,8 @@ python tools/fake_node.py --name TestNode --universes 0 1
 
 End-to-end (after the user OKs a restart):
 ```bash
-tar --exclude=__pycache__ -C custom_components -cf - artnet_light | ssh -o BatchMode=yes root@192.168.1.167   'D=/opt/1panel/apps/home-assistant/home-assistant/data/custom_components; rm -rf $D/artnet_light && tar -x -C $D && docker restart 1Panel-home-assistant-oGES'
+tar --exclude=__pycache__ -C custom_components -cf - artnet_light | ssh -o BatchMode=yes root@192.168.1.167 \
+  'D=/opt/1panel/apps/home-assistant/home-assistant/data/custom_components; rm -rf $D/artnet_light && tar -x -C $D && docker restart 1Panel-home-assistant-oGES'
 ```
 Drive flows/services through the HA REST API (`/api/config/config_entries/flow`, `/api/config/config_entries/options/flow`, `/api/services/light/...`) with the token in `/root/.ha_token` on the server (never print it; the local copy `HAkey.md` is git-ignored). Run `tools/fake_node.py` on this Windows machine (192.168.1.136) to receive DMX. Git Bash needs `MSYS_NO_PATHCONV=1` so `/api/...` arguments aren't rewritten into Windows paths.
 
@@ -70,7 +71,7 @@ Data flow for a light command: `ArtNetLight.async_turn_on` → `Fixture.compute_
 Key cross-file facts:
 - **Storage**: one config entry per node. `entry.data` = host/port/name/mac/universes; `entry.options` = send settings + `fixtures` (list of `Fixture.to_dict()`). Fixture `id` (uuid) is the entity unique_id and the device identifier.
 - **Live updates**: any options save → update listener reloads the entry. `async_setup_entry` removes registry entities/devices for deleted fixtures, and calls `controller.async_start_sending()` only after platforms are set up, so restored states are in the buffer before the first frame (avoids flicker).
-- **Entities**: each fixture is its own device (`via_device` = node device keyed by `entry_id`) with `_attr_name = None`, so entity_id derives from the fixture name (`客厅灯带` → `light.ke_ting_deng_dai`).
+- **Entities/devices**: each fixture is its own device, created in `async_setup_entry` and linked to the node device (identifier `entry_id`) via `async_update_device(via_device_id=...)` — not `DeviceInfo(via_device=...)`, which is deprecated (D-013). The entity's `DeviceInfo` only carries identifiers and `_attr_name = None`, so entity_id derives from the fixture name (`客厅灯带` → `light.ke_ting_deng_dai`).
 - **Discovery**: `async_setup` starts background ArtPoll every 5 min (only runs once any entry exists). Unique IDs: MAC via `format_mac` for discovered nodes, `host:port` for manual ones, plus `_async_abort_entries_match({host})` for cross-dedup.
 - **Channel order** strings (R G B W C I T) must be a permutation of the type's default in `fixture.DEFAULT_ORDER`; validation lives in `normalize_order`.
 
