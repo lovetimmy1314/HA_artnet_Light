@@ -95,7 +95,7 @@ def _async_remove_stale(hass: HomeAssistant, entry: ConfigEntry, fixture_ids: se
         ids = {ident for domain, ident in device.identifiers if domain == DOMAIN}
         if entry.entry_id in ids or ids & fixture_ids:
             continue
-        device_registry.async_update_device(device.id, remove_config_entry_id=entry.entry_id)
+        device_registry.async_remove_device(device.id)
 
 
 async def _async_update_listener(hass: HomeAssistant, entry: ConfigEntry) -> None:

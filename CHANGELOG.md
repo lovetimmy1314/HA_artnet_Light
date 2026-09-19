@@ -2,6 +2,15 @@
 
 格式参考 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.1.0/)，版本遵循 [SemVer](https://semver.org/lang/zh-CN/)。版本号以 `custom_components/artnet_light/manifest.json` 为准，与 git tag `vX.Y.Z` 一致。
 
+## [0.2.1] - 2026-09-19
+
+### 修复
+- 删除灯具时 HA 2026.9 报弃用警告（`async_update_device(remove_config_entry_id=...)`，2027.8 起失效）：改用 `async_remove_device`
+
+### 测试
+- 线上 HA 2026.9.2 端到端验证 v0.2.0：删除 U1 上唯一的灯具 → U1 收到全 0；RGB 改 RGBW 不再报通道顺序错误；删除节点 → U0 收到全 0
+- HA 测试断言删除灯具后设备被移除、日志里没有 “Detected that custom integration” 弃用警告
+
 ## [0.2.0] - 2026-09-19
 
 ### 变更

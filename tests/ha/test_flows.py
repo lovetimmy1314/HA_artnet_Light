@@ -119,7 +119,7 @@ FIXTURE_INPUT = {
 }
 
 
-async def test_options_add_edit_delete_fixture(hass: HomeAssistant) -> None:
+async def test_options_add_edit_delete_fixture(hass: HomeAssistant, caplog: pytest.LogCaptureFixture) -> None:
     entry = await _setup_entry(hass)
 
     # add
@@ -171,6 +171,8 @@ async def test_options_add_edit_delete_fixture(hass: HomeAssistant) -> None:
 
     assert hass.states.get("light.ke_ting_deng_dai") is None
     assert er.async_get(hass).async_get("light.ke_ting_deng_dai") is None
+    assert devices.async_get(fixture_dev.id) is None
+    assert "Detected that custom integration" not in caplog.text  # no deprecated HA API use
 
 def _entry_with_fixtures(hass: HomeAssistant, *fixtures: dict) -> MockConfigEntry:
     entry = MockConfigEntry(

@@ -61,6 +61,7 @@ HACS 可安装的 Home Assistant 自定义集成 `artnet_light`：
 - [x] [低] `edit_fixture` 翻译缺少字段说明 → 与 `add_fixture` 一致（v0.2.0）
 - [ ] 测试缺口（剩余）：CCT/RGBWW/16 位经实体输出、渐变、手动添加重复节点（修改灯具、发送设置、补发全 0 已在 v0.2.0 补上）
 - [x] CI 改用 py3.14（最新 HA）
+- [x] 线上 HA 2026.9.2 端到端验证 v0.2.0（REST + 模拟节点）：补发全 0（删灯具 / 删节点）、改类型、RGBW 默认值均正确；发现删除灯具时的弃用警告 → v0.2.1 修复
 - [ ] 推到 GitHub 前确认 HACS action 的 brands 检查（未收录到 home-assistant/brands 会失败，可 `ignore: brands`）
 
 ## 验证方法
