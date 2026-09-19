@@ -24,11 +24,11 @@ Every completed code change is committed and tagged by the agent at the end of t
 4. Run `python -m pytest tests/test_core.py -q -p no:homeassistant` first (and the HA tests on the Linux box when HA-layer code changed); don't tag a red build.
 5. One commit, Conventional Commits prefix (`feat:` / `fix:` / `refactor:` / `test:` / `docs:` / `chore:`), then an annotated tag: `git tag -a vX.Y.Z -m "vX.Y.Z: <summary>"`.
 
-Doc-only changes (Plan/DECISIONS/README/CLAUDE.md) are committed with `docs:` but **not** version-bumped or tagged. Work on `main` directly (solo repo). Never push or create remotes/releases without asking — no remote is configured yet.
+Doc-only changes (Plan/DECISIONS/README/CLAUDE.md) are committed with `docs:` but **not** version-bumped or tagged. Work on `main` directly (solo repo). Never push or create remotes/releases without asking. The GitHub remote is named `HA_artnet_Light` (not `origin`): `git@github.com:lovetimmy1314/HA_artnet_Light.git`.
 
 ## Commands
 
-Dev machine is Windows with only Python 3.11 (no Docker, no HA install). A scratch venv with pytest is used for local runs. HA tests run on the Linux box `root@192.168.1.167` (see user-level CLAUDE.md) in throwaway containers.
+Dev machine is Windows with only Python 3.11 (no Docker, no HA install). The `python` on PATH (Espressif's) has no pytest; if no scratch venv exists, run the core tests in the same Linux container as the HA tests (separate invocation). HA tests run on the Linux box `root@192.168.1.167` (see user-level CLAUDE.md) in throwaway containers.
 
 Core tests and HA tests **must be separate pytest invocations**: the HA pytest plugin blocks sockets and replaces the event loop, which breaks the controller tests. `pytest.ini` therefore only collects `tests/ha`.
 

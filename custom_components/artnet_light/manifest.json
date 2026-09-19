@@ -1,13 +1,13 @@
 {
   "domain": "artnet_light",
   "name": "Art-Net Light",
-  "codeowners": [],
+  "codeowners": ["@lovetimmy1314"],
   "config_flow": true,
   "dependencies": ["network"],
-  "documentation": "https://github.com/your-name/ha-artnet-light",
+  "documentation": "https://github.com/lovetimmy1314/HA_artnet_Light",
   "integration_type": "hub",
   "iot_class": "local_push",
-  "issue_tracker": "https://github.com/your-name/ha-artnet-light/issues",
+  "issue_tracker": "https://github.com/lovetimmy1314/HA_artnet_Light/issues",
   "requirements": [],
-  "version": "0.2.1"
+  "version": "0.2.2"
 }

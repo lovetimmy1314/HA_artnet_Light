@@ -2,6 +2,18 @@
 
 格式参考 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.1.0/)，版本遵循 [SemVer](https://semver.org/lang/zh-CN/)。版本号以 `custom_components/artnet_light/manifest.json` 为准，与 git tag `vX.Y.Z` 一致。
 
+## [0.2.2] - 2026-09-19
+
+### 修复
+- 灯具表单同时有多个错误时只显示最后一个：通道顺序错误显示在表单顶部，色温/输出范围错误显示在「高级参数」旁（两者都错时合并为一条提示）
+
+### 其他
+- manifest 的文档/问题反馈地址改为 GitHub 仓库 `lovetimmy1314/HA_artnet_Light`，填上 codeowners
+- CI 的 HACS 检查忽略 brands（尚未收录到 home-assistant/brands）
+
+### 测试
+- 新增 HA 测试：CCT（冷暖两路 / 亮度+色温）、RGBWW 自定义通道顺序、16 位灯具（含最大输出）经实体输出的 DMX 值；渐变过程与新命令打断渐变；手动添加重复节点；表单多错误同时显示
+
 ## [0.2.1] - 2026-09-19
 
 ### 修复

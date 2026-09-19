@@ -1,7 +1,7 @@
 # Plan: Art-Net Light (HA custom integration)
 
 > 活文档：每完成/变更一项就更新状态。设计取舍记录在 [DECISIONS.md](DECISIONS.md)。
-> 最近更新：2026-09-19（v0.2.0）
+> 最近更新：2026-09-19（v0.2.2）
 
 ## 目标
 HACS 可安装的 Home Assistant 自定义集成 `artnet_light`：
@@ -47,7 +47,8 @@ HACS 可安装的 Home Assistant 自定义集成 `artnet_light`：
 - [x] 真实 HA 端到端验证（HA 2026.9.2 + 模拟节点）：发现、添加节点、添加灯具、颜色/亮度/渐变/关灯、重启恢复并重发、设备归属（v0.1.2）
 - [ ] 在真实界面里走一遍（目前是通过 REST API 驱动的）：手动添加路径、修改/删除灯具、发送设置、CCT/RGBW/16 位灯具
 - [x] git 仓库初始化，v0.1.0 已提交并打 tag
-- [ ] 推到 GitHub，跑通 CI；替换 manifest 中的占位 URL 与 codeowners
+- [x] 替换 manifest 中的占位 URL 与 codeowners（v0.2.2）
+- [ ] 推到 GitHub，跑通 CI
 - [x] 关灯状态下重启会丢失上次亮度/颜色 → 用 `ExtraStoredData` 保存（v0.1.3，D-014）
 - [ ] （可选）接真实 Art-Net 节点 / QLC+ 监视验证
 
@@ -57,12 +58,12 @@ HACS 可安装的 Home Assistant 自定义集成 `artnet_light`：
 - [x] **[高] 删除/移走灯具后可能常亮**（Universe 没人发了，节点保持最后一帧）→ 卸载时对不再使用的 Universe 补发全 0，禁用/删除节点时全部补发（v0.2.0，D-016）
 - [x] [中] 修改灯具时「通道顺序」预填默认值，改类型必报 `invalid_order` → 只在自定义时预填（v0.2.0）
 - [x] [低] 渐变任务不受 HA 管理 → 也用 `entry.async_create_background_task`（v0.2.0）
-- [ ] [低] 表单多个错误都写 `errors["base"]`，只显示最后一个
+- [x] [低] 表单多个错误都写 `errors["base"]`，只显示最后一个 → 分放 base / advanced（v0.2.2，D-017）
 - [x] [低] `edit_fixture` 翻译缺少字段说明 → 与 `add_fixture` 一致（v0.2.0）
-- [ ] 测试缺口（剩余）：CCT/RGBWW/16 位经实体输出、渐变、手动添加重复节点（修改灯具、发送设置、补发全 0 已在 v0.2.0 补上）
+- [x] 测试缺口：CCT/RGBWW/16 位经实体输出、渐变、手动添加重复节点（v0.2.2；HA 测试 13 项、核心测试 22 项）
 - [x] CI 改用 py3.14（最新 HA）
 - [x] 线上 HA 2026.9.2 端到端验证 v0.2.0（REST + 模拟节点）：补发全 0（删灯具 / 删节点）、改类型、RGBW 默认值均正确；发现删除灯具时的弃用警告 → v0.2.1 修复
-- [ ] 推到 GitHub 前确认 HACS action 的 brands 检查（未收录到 home-assistant/brands 会失败，可 `ignore: brands`）
+- [x] HACS action 的 brands 检查：CI 里 `ignore: brands`（v0.2.2）
 
 ## 验证方法
 1. `pytest tests/test_core.py -p no:homeassistant` —— 协议字节、灯具换算、发送器（本机即可）

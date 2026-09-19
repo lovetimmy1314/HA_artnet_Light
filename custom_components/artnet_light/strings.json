@@ -132,6 +132,7 @@
       "invalid_order": "Channel order doesn't match the fixture type (wrong letters or length).",
       "invalid_kelvin_range": "Warmest colour temperature must be lower than the coldest.",
       "invalid_output_range": "Minimum output must be lower than maximum output.",
+      "invalid_kelvin_and_output_range": "Warmest colour temperature must be lower than the coldest, and minimum output must be lower than maximum output.",
       "channel_overflow": "Fixture would end at channel {end}, beyond 512.",
       "channel_overlap": "Channels overlap with {conflict}."
     },

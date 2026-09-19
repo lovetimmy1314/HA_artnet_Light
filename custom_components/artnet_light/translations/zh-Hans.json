@@ -132,6 +132,7 @@
       "invalid_order": "通道顺序与灯具类型不匹配（字母或长度不对）。",
       "invalid_kelvin_range": "最暖色温必须低于最冷色温。",
       "invalid_output_range": "最小输出必须小于最大输出。",
+      "invalid_kelvin_and_output_range": "最暖色温必须低于最冷色温，且最小输出必须小于最大输出。",
       "channel_overflow": "该灯具将占用到第 {end} 通道，超出 512。",
       "channel_overlap": "通道与 {conflict} 重叠。"
     },

@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import asyncio
 from unittest.mock import patch
 
 import pytest
@@ -331,3 +332,118 @@ async def test_removed_universe_is_blacked_out(hass: HomeAssistant) -> None:
         await hass.config_entries.async_remove(entry.entry_id)
         await hass.async_block_till_done()
         assert [c.args[1] for c in blackout.call_args_list] == [set(), {0}]
+
+
+async def test_manual_duplicate_node_aborts(hass: HomeAssistant) -> None:
+    await _setup_entry(hass)
+    with scan_returns([]):
+        result = await hass.config_entries.flow.async_init(DOMAIN, context={"source": config_entries.SOURCE_USER})
+        result = await hass.config_entries.flow.async_configure(
+            result["flow_id"], {"host": "192.168.1.200", "port": 6454, "name": "Again"}
+        )
+    assert result["type"] is FlowResultType.ABORT
+    assert result["reason"] == "already_configured"
+
+    # same host as a discovered (MAC-keyed) node is caught too
+    result = await hass.config_entries.flow.async_init(
+        DOMAIN, context={"source": config_entries.SOURCE_INTEGRATION_DISCOVERY}, data=NODE.as_dict()
+    )
+    await hass.config_entries.flow.async_configure(result["flow_id"], {})
+    await hass.async_block_till_done()
+    with scan_returns([]):
+        result = await hass.config_entries.flow.async_init(DOMAIN, context={"source": config_entries.SOURCE_USER})
+        result = await hass.config_entries.flow.async_configure(
+            result["flow_id"], {"host": NODE.ip, "port": 6454, "name": "Again"}
+        )
+    assert result["type"] is FlowResultType.ABORT
+    assert len(hass.config_entries.async_entries(DOMAIN)) == 2
+
+
+async def test_fixture_form_reports_every_error(hass: HomeAssistant) -> None:
+    entry = _entry_with_fixtures(hass)
+    await hass.config_entries.async_setup(entry.entry_id)
+    await hass.async_block_till_done()
+
+    result = await hass.config_entries.options.async_init(entry.entry_id)
+    result = await hass.config_entries.options.async_configure(result["flow_id"], {"next_step_id": "add_fixture"})
+    bad = {
+        **FIXTURE_INPUT,
+        "name": " ",
+        "advanced": {**FIXTURE_INPUT["advanced"], "channel_order": "RGGB", "min_kelvin": 6500, "max_output": 0},
+    }
+    result = await hass.config_entries.options.async_configure(result["flow_id"], bad)
+    assert result["errors"] == {
+        "name": "name_required",
+        "base": "invalid_order",
+        "advanced": "invalid_kelvin_and_output_range",
+    }
+
+    bad = {**FIXTURE_INPUT, "advanced": {**FIXTURE_INPUT["advanced"], "min_output": 200, "max_output": 100}}
+    result = await hass.config_entries.options.async_configure(result["flow_id"], bad)
+    assert result["errors"] == {"advanced": "invalid_output_range"}
+
+
+async def _turn_on(hass: HomeAssistant, entity_id: str, **data) -> None:
+    await hass.services.async_call("light", "turn_on", {"entity_id": entity_id, **data}, blocking=True)
+
+
+async def test_entity_output_per_fixture_type(hass: HomeAssistant) -> None:
+    """CCT (both modes), RGBWW and 16-bit fixtures write the right DMX bytes."""
+    entry = _entry_with_fixtures(
+        hass,
+        {"id": "cw", "name": "CW", "type": "cct", "start_channel": 1,
+         "min_kelvin": 2700, "max_kelvin": 6500},
+        {"id": "it", "name": "IT", "type": "cct", "cct_mode": "intensity_temp", "start_channel": 3,
+         "min_kelvin": 2700, "max_kelvin": 6500},
+        {"id": "ww", "name": "WW", "type": "rgbww", "start_channel": 5, "channel_order": "WCRGB"},
+        {"id": "d16", "name": "D16", "type": "dimmer", "start_channel": 10, "bits": 16},
+        {"id": "rgb16", "name": "RGB16", "type": "rgb", "start_channel": 20, "bits": 16, "max_output": 128},
+    )
+    await hass.config_entries.async_setup(entry.entry_id)
+    await hass.async_block_till_done()
+    data = lambda: entry.runtime_data.universe_data(0)  # noqa: E731
+
+    await _turn_on(hass, "light.cw", color_temp_kelvin=6500, brightness=255)
+    assert data()[0:2] == bytes([255, 0])  # C W
+    await _turn_on(hass, "light.cw", color_temp_kelvin=2700)
+    assert data()[0:2] == bytes([0, 255])
+
+    await _turn_on(hass, "light.it", color_temp_kelvin=4600, brightness=128)
+    assert data()[2:4] == bytes([128, 128])  # I T (T = 50 % between min and max)
+    state = hass.states.get("light.it")
+    assert (state.attributes["min_color_temp_kelvin"], state.attributes["max_color_temp_kelvin"]) == (2700, 6500)
+
+    await _turn_on(hass, "light.ww", rgbww_color=[10, 20, 30, 40, 50])
+    assert data()[4:9] == bytes([50, 40, 10, 20, 30])  # W C R G B
+
+    await _turn_on(hass, "light.d16", brightness=128)
+    value = round(128 / 255 * 0xFFFF)
+    assert data()[9:11] == bytes([value >> 8, value & 0xFF])
+
+    await _turn_on(hass, "light.rgb16", rgb_color=[255, 0, 0])
+    red = round(128 / 255 * 0xFFFF)  # max_output caps full red at 128/255
+    assert data()[19:25] == bytes([red >> 8, red & 0xFF, 0, 0, 0, 0])
+    assert hass.states.get("light.rgb16").attributes["dmx_end_channel"] == 25
+
+
+async def test_transition_fades(hass: HomeAssistant) -> None:
+    entry = _entry_with_fixtures(hass, RGB_FIXTURE)
+    await hass.config_entries.async_setup(entry.entry_id)
+    await hass.async_block_till_done()
+    data = lambda: entry.runtime_data.universe_data(0)[:3]  # noqa: E731
+
+    await _turn_on(hass, "light.strip", rgb_color=[255, 0, 0])
+    assert data() == bytes([255, 0, 0])
+
+    await _turn_on(hass, "light.strip", rgb_color=[0, 0, 255], transition=0.4)
+    await asyncio.sleep(0.15)
+    mid = data()
+    assert 0 < mid[0] < 255 and 0 < mid[2] < 255
+    await asyncio.sleep(0.4)
+    assert data() == bytes([0, 0, 255])
+
+    # a new command cancels the running fade and wins
+    await _turn_on(hass, "light.strip", rgb_color=[0, 255, 0], transition=10)
+    await hass.services.async_call("light", "turn_off", {"entity_id": "light.strip"}, blocking=True)
+    await asyncio.sleep(0.1)
+    assert data() == bytes(3)

@@ -317,14 +317,19 @@ class ArtNetOptionsFlow(OptionsFlow):
         order = normalize_order(fixture_type, cct_mode, adv.get(CONF_CHANNEL_ORDER))
         if order is None:
             errors["base"] = "invalid_order"
+        # Fields inside a section can't carry their own error; the frontend shows
+        # errors keyed by the section name next to it, so range errors go there.
         min_k, max_k = int(adv.get(CONF_MIN_KELVIN, DEFAULT_MIN_KELVIN)), int(
             adv.get(CONF_MAX_KELVIN, DEFAULT_MAX_KELVIN)
         )
-        if min_k >= max_k:
-            errors["base"] = "invalid_kelvin_range"
         min_o, max_o = int(adv.get(CONF_MIN_OUTPUT, 0)), int(adv.get(CONF_MAX_OUTPUT, 255))
-        if min_o >= max_o:
-            errors["base"] = "invalid_output_range"
+        bad_kelvin, bad_output = min_k >= max_k, min_o >= max_o
+        if bad_kelvin and bad_output:
+            errors[CONF_ADVANCED] = "invalid_kelvin_and_output_range"
+        elif bad_kelvin:
+            errors[CONF_ADVANCED] = "invalid_kelvin_range"
+        elif bad_output:
+            errors[CONF_ADVANCED] = "invalid_output_range"
         if errors:
             return None, errors, placeholders
 
