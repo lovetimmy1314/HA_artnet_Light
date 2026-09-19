@@ -48,7 +48,7 @@ HACS 可安装的 Home Assistant 自定义集成 `artnet_light`：
 - [ ] 在真实界面里走一遍（目前是通过 REST API 驱动的）：手动添加路径、修改/删除灯具、发送设置、CCT/RGBW/16 位灯具
 - [x] git 仓库初始化，v0.1.0 已提交并打 tag
 - [ ] 推到 GitHub，跑通 CI；替换 manifest 中的占位 URL 与 codeowners
-- [ ] 关灯状态下重启会丢失上次亮度/颜色（HA 关灯态不带这些属性）→ 考虑 `ExtraStoredData`
+- [x] 关灯状态下重启会丢失上次亮度/颜色 → 用 `ExtraStoredData` 保存（v0.1.3，D-014）
 - [ ] （可选）接真实 Art-Net 节点 / QLC+ 监视验证
 
 ## 验证方法

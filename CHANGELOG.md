@@ -2,6 +2,14 @@
 
 格式参考 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.1.0/)，版本遵循 [SemVer](https://semver.org/lang/zh-CN/)。版本号以 `custom_components/artnet_light/manifest.json` 为准，与 git tag `vX.Y.Z` 一致。
 
+## [0.1.3] - 2026-09-19
+
+### 修复
+- 关灯状态下重启 HA 后，再开灯会回到默认的全亮白色：现在上次的亮度、颜色、色温通过 `ExtraStoredData` 保存，关灯时也不会丢失；0.1.2 及更早保存的状态仍从状态属性恢复
+
+### 测试
+- HA 测试新增：关灯重启后开灯恢复原亮度/颜色/色温（RGB、CCT）；旧版状态（只有属性）仍能恢复并重发
+
 ## [0.1.2] - 2026-09-19
 
 ### 修复

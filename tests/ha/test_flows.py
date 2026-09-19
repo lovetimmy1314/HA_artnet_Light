@@ -7,9 +7,15 @@ from unittest.mock import patch
 import pytest
 
 from homeassistant import config_entries
-from homeassistant.core import HomeAssistant
+from homeassistant.core import HomeAssistant, State
 from homeassistant.data_entry_flow import FlowResultType
 from homeassistant.helpers import device_registry as dr, entity_registry as er
+
+from pytest_homeassistant_custom_component.common import (
+    MockConfigEntry,
+    mock_restore_cache,
+    mock_restore_cache_with_extra_data,
+)
 
 from custom_components.artnet_light.artnet import ArtNetNode
 from custom_components.artnet_light.const import DOMAIN
@@ -165,3 +171,64 @@ async def test_options_add_edit_delete_fixture(hass: HomeAssistant) -> None:
     assert hass.states.get("light.ke_ting_deng_dai") is None
     assert er.async_get(hass).async_get("light.ke_ting_deng_dai") is None
 
+
+
+def _entry_with_fixtures(hass: HomeAssistant, *fixtures: dict) -> MockConfigEntry:
+    entry = MockConfigEntry(
+        domain=DOMAIN,
+        title="Gateway",
+        data={"host": "192.168.1.200", "port": 6454, "name": "Gateway", "universes": [0]},
+        options={"fixtures": list(fixtures)},
+    )
+    entry.add_to_hass(hass)
+    return entry
+
+
+RGB_FIXTURE = {"id": "fx-rgb", "name": "Strip", "type": "rgb", "universe": 0, "start_channel": 1}
+CCT_FIXTURE = {"id": "fx-cct", "name": "Panel", "type": "cct", "universe": 0, "start_channel": 10}
+
+
+async def test_restore_off_keeps_last_values(hass: HomeAssistant) -> None:
+    """Restarting while off keeps brightness/colour for the next turn_on (extra stored data)."""
+    mock_restore_cache_with_extra_data(
+        hass,
+        [
+            (
+                State("light.strip", "off"),
+                {"brightness": 128, "rgb_color": [0, 0, 255], "rgbw_color": None,
+                 "rgbww_color": None, "color_temp_kelvin": None},
+            ),
+            (
+                State("light.panel", "off"),
+                {"brightness": 64, "rgb_color": None, "rgbw_color": None,
+                 "rgbww_color": None, "color_temp_kelvin": 3000},
+            ),
+        ],
+    )
+    entry = _entry_with_fixtures(hass, RGB_FIXTURE, CCT_FIXTURE)
+    await hass.config_entries.async_setup(entry.entry_id)
+    await hass.async_block_till_done()
+
+    assert hass.states.get("light.strip").state == "off"
+    assert entry.runtime_data.universe_data(0)[:3] == bytes(3)
+
+    await hass.services.async_call("light", "turn_on", {"entity_id": "light.strip"}, blocking=True)
+    state = hass.states.get("light.strip")
+    assert state.attributes["brightness"] == 128
+    assert tuple(state.attributes["rgb_color"]) == (0, 0, 255)
+
+    await hass.services.async_call("light", "turn_on", {"entity_id": "light.panel"}, blocking=True)
+    state = hass.states.get("light.panel")
+    assert state.attributes["brightness"] == 64
+    assert state.attributes["color_temp_kelvin"] == 3000
+
+
+async def test_restore_legacy_state_attributes(hass: HomeAssistant) -> None:
+    """States saved by <= 0.1.2 have no extra data: fall back to the attributes."""
+    mock_restore_cache(hass, [State("light.strip", "on", {"brightness": 255, "rgb_color": [255, 0, 0]})])
+    entry = _entry_with_fixtures(hass, RGB_FIXTURE)
+    await hass.config_entries.async_setup(entry.entry_id)
+    await hass.async_block_till_done()
+
+    assert hass.states.get("light.strip").state == "on"
+    assert entry.runtime_data.universe_data(0)[:3] == bytes([255, 0, 0])

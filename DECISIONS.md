@@ -82,3 +82,9 @@
 - **背景**：HA 2026.x 弃用了 `DeviceInfo(via_device=...)` / `async_get_or_create(via_device=...)`，2027.8 起失效；而 `async_get_or_create(via_device_id=...)` 在 2024.11 中还不存在。
 - **决定**：`async_setup_entry` 先建节点设备，再为每个灯具 `async_get_or_create` 设备，然后 `async_update_device(via_device_id=node.id)`（这个接口一直都有）。实体的 `DeviceInfo` 只带 `identifiers`。
 - **理由**：一套代码同时兼容最低版本和最新版本，不需要做版本判断。
+
+## D-014 亮度/颜色用 ExtraStoredData 保存，关灯也不丢
+- **日期**：2026-09-19 · **状态**：采纳
+- **背景**：HA 关灯状态不带 brightness / rgb_color 等属性，只靠 `async_get_last_state()` 恢复时，关灯重启后再开灯会回到默认全亮白色。
+- **决定**：实体实现 `extra_restore_state_data`，保存亮度、rgb/rgbw/rgbww、色温；恢复时优先用它，没有（0.1.2 及更早保存的状态）才退回读状态属性。开关状态仍取自 `last.state`。
+- **理由/代价**：不改存储配置，无需迁移；每个实体在 `core.restore_state` 里多存几个字段。
