@@ -50,7 +50,8 @@ HACS 可安装的 Home Assistant 自定义集成 `artnet_light`：
 - [x] 替换 manifest 中的占位 URL 与 codeowners（v0.2.2）
 - [x] 推到 GitHub（hassfest、测试通过；HACS 检查因仓库私有、无 LICENSE/topics 失败 → 加 Apache-2.0 LICENSE、topics，仓库改公开）
 - [x] 仓库改公开后 CI 全绿：hassfest、HACS、测试（2026-09-19，D-018）
-- [ ] 建 GitHub Release（HACS 优先按 Release 安装）
+- [x] 建 GitHub Release v0.2.2（HACS 优先按 Release 安装）
+- [x] CI 只在代码/版本变动时触发（D-019）
 - [x] 关灯状态下重启会丢失上次亮度/颜色 → 用 `ExtraStoredData` 保存（v0.1.3，D-014）
 - [x] 接真实 Art-Net 节点验证（2026-09-19，用户验证）
 

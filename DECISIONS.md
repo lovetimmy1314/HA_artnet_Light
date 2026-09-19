@@ -113,3 +113,9 @@
 - **背景**：CI 的 HACS 检查一直失败：私有仓库下 hacs/action 读不到 `hacs.json` 和 manifest（报 `Got None`），另外还缺 LICENSE 和 topics。HACS 本身也只能安装公开仓库。
 - **决定**：GitHub 仓库改为公开；添加 Apache-2.0 LICENSE（与 Home Assistant 一致）；topics 设为 hacs / home-assistant / homeassistant / hacs-integration / artnet / dmx。CI 仍然跳过 brands 检查。
 - **理由/代价**：公开后 CI 全绿，可通过 HACS 自定义存储库安装。代价：`CLAUDE.md`、`Plan.md` 及其历史中的内网测试机地址、容器名一并公开（均为局域网私有地址，未包含任何凭据）。
+
+## D-019 CI 只在代码/版本变动时触发
+- **日期**：2026-09-19 · **状态**：采纳
+- **背景**：纯文档提交（Plan/DECISIONS/README/CLAUDE.md）也会跑一遍 CI，白白消耗 Actions 时间。
+- **决定**：`push` 只看 `main` 分支和 `v*` tag，分支推送用 `paths` 过滤：`custom_components/`、`tests/`、`tools/`、`hacs.json`、`requirements_test.txt`、`pytest.ini`、`.github/workflows/`；PR 用同一组路径（YAML 锚点复用）。tag 推送不受 `paths` 限制，每个版本都会跑。
+- **理由/代价**：文档改动不再触发 CI；代价是 README 改动不会重新跑 HACS 检查（README 不在它的检查项里），新增代码目录时要记得加进路径列表。

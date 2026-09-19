@@ -1,8 +1,21 @@
 name: Validate
 
+# Only code/version changes run CI (D-019). Tag pushes (versions) always run:
+# GitHub ignores `paths` for tag pushes.
 on:
   push:
+    branches: [main]
+    tags: ["v*"]
+    paths: &code_paths
+      - "custom_components/**"
+      - "tests/**"
+      - "tools/**"
+      - "hacs.json"
+      - "requirements_test.txt"
+      - "pytest.ini"
+      - ".github/workflows/**"
   pull_request:
+    paths: *code_paths
 
 jobs:
   hassfest:
