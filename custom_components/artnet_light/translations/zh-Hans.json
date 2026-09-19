@@ -21,14 +21,25 @@
       "discovery_confirm": {
         "title": "发现 Art-Net 节点",
         "description": "是否添加 **{name}**（{host}，Universe：{universes}）？"
+      },
+      "reconfigure": {
+        "title": "修改节点地址",
+        "description": "修改 **{name}** 的地址、端口或名称。已添加的灯具及其设置都会保留。",
+        "data": {
+          "host": "网关 IP / 广播地址",
+          "port": "端口",
+          "name": "名称"
+        }
       }
     },
     "error": {
-      "invalid_host": "请输入有效的 IPv4 地址。"
+      "invalid_host": "请输入有效的 IPv4 地址。",
+      "already_configured": "已有其他节点使用这个地址和端口。"
     },
     "abort": {
       "already_configured": "该节点已经配置过了。",
-      "already_in_progress": "该节点正在配置中。"
+      "already_in_progress": "该节点正在配置中。",
+      "reconfigure_successful": "节点地址已更新。"
     }
   },
   "options": {

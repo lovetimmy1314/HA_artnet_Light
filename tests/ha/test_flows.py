@@ -82,7 +82,7 @@ async def test_user_pick_discovered(hass: HomeAssistant) -> None:
     assert result["data"]["universes"] == [0, 1]
 
 
-async def test_integration_discovery_and_dedup(hass: HomeAssistant) -> None:
+async def test_integration_discovery_and_dedup(hass: HomeAssistant, caplog: pytest.LogCaptureFixture) -> None:
     result = await hass.config_entries.flow.async_init(
         DOMAIN, context={"source": config_entries.SOURCE_INTEGRATION_DISCOVERY}, data=NODE.as_dict()
     )
@@ -98,6 +98,9 @@ async def test_integration_discovery_and_dedup(hass: HomeAssistant) -> None:
     assert result["type"] is FlowResultType.ABORT
     assert result["reason"] == "already_configured"
     assert hass.config_entries.async_entries(DOMAIN)[0].data["host"] == "192.168.1.99"
+    await hass.async_block_till_done()
+    assert hass.config_entries.async_entries(DOMAIN)[0].runtime_data.host == "192.168.1.99"
+    assert "update listener" not in caplog.text  # reload is left to HA (D-020)
 
 
 async def _setup_entry(hass: HomeAssistant):
@@ -447,3 +450,88 @@ async def test_transition_fades(hass: HomeAssistant) -> None:
     await hass.services.async_call("light", "turn_off", {"entity_id": "light.strip"}, blocking=True)
     await asyncio.sleep(0.1)
     assert data() == bytes(3)
+
+
+async def _reconfigure(hass: HomeAssistant, entry, user_input: dict):
+    result = await hass.config_entries.flow.async_init(
+        DOMAIN, context={"source": config_entries.SOURCE_RECONFIGURE, "entry_id": entry.entry_id}
+    )
+    assert result["type"] is FlowResultType.FORM
+    assert result["step_id"] == "reconfigure"
+    return await hass.config_entries.flow.async_configure(result["flow_id"], user_input)
+
+
+async def test_reconfigure_manual_node(hass: HomeAssistant, caplog: pytest.LogCaptureFixture) -> None:
+    entry = await _setup_entry(hass)
+    result = await hass.config_entries.options.async_init(entry.entry_id)
+    result = await hass.config_entries.options.async_configure(result["flow_id"], {"next_step_id": "add_fixture"})
+    await hass.config_entries.options.async_configure(result["flow_id"], FIXTURE_INPUT)
+    await hass.async_block_till_done()
+    fixtures = entry.options["fixtures"]
+    await hass.services.async_call(
+        "light", "turn_on", {"entity_id": "light.ke_ting_deng_dai", "rgb_color": [0, 0, 255]}, blocking=True
+    )
+
+    # a second node occupies 192.168.1.201:6454
+    with scan_returns([]):
+        other = await hass.config_entries.flow.async_init(DOMAIN, context={"source": config_entries.SOURCE_USER})
+        await hass.config_entries.flow.async_configure(
+            other["flow_id"], {"host": "192.168.1.201", "port": 6454, "name": "Other"}
+        )
+    await hass.async_block_till_done()
+
+    result = await _reconfigure(hass, entry, {"host": "bad", "port": 6454, "name": "Gateway"})
+    assert result["errors"] == {"host": "invalid_host"}
+    result = await hass.config_entries.flow.async_configure(
+        result["flow_id"], {"host": "192.168.1.201", "port": 6454, "name": "Gateway"}
+    )
+    assert result["errors"] == {"base": "already_configured"}
+    result = await hass.config_entries.flow.async_configure(
+        result["flow_id"], {"host": "192.168.1.210", "port": 6455, "name": "Stage"}
+    )
+    assert result["type"] is FlowResultType.ABORT
+    assert result["reason"] == "reconfigure_successful"
+    await hass.async_block_till_done()
+
+    assert entry.data["host"] == "192.168.1.210"
+    assert entry.data["port"] == 6455
+    assert entry.unique_id == "192.168.1.210:6455"
+    assert entry.title == "Stage (192.168.1.210)"
+    assert entry.options["fixtures"] == fixtures
+    controller = entry.runtime_data
+    assert (controller.host, controller.port) == ("192.168.1.210", 6455)
+    # the light kept its state and is sent to the new address
+    assert hass.states.get("light.ke_ting_deng_dai").state == "on"
+    assert controller.universe_data(0)[:3] == bytes([0, 0, 255])
+    node = next(
+        d
+        for d in dr.async_entries_for_config_entry(dr.async_get(hass), entry.entry_id)
+        if (DOMAIN, entry.entry_id) in d.identifiers
+    )
+    assert node.name == "Stage"
+    assert node.configuration_url == "http://192.168.1.210"
+    assert "Detected that custom integration" not in caplog.text
+
+    # the old address is free again
+    with scan_returns([]):
+        result = await hass.config_entries.flow.async_init(DOMAIN, context={"source": config_entries.SOURCE_USER})
+        result = await hass.config_entries.flow.async_configure(
+            result["flow_id"], {"host": "192.168.1.200", "port": 6454, "name": "New"}
+        )
+    assert result["type"] is FlowResultType.CREATE_ENTRY
+
+
+async def test_reconfigure_discovered_node_keeps_mac_id(hass: HomeAssistant) -> None:
+    result = await hass.config_entries.flow.async_init(
+        DOMAIN, context={"source": config_entries.SOURCE_INTEGRATION_DISCOVERY}, data=NODE.as_dict()
+    )
+    result = await hass.config_entries.flow.async_configure(result["flow_id"], {})
+    entry = result["result"]
+    await hass.async_block_till_done()
+
+    result = await _reconfigure(hass, entry, {"host": "192.168.1.60", "port": 6454, "name": "Node-A"})
+    assert result["reason"] == "reconfigure_successful"
+    await hass.async_block_till_done()
+    assert entry.unique_id == NODE.mac
+    assert entry.data["host"] == "192.168.1.60"
+    assert entry.data["universes"] == [0, 1]

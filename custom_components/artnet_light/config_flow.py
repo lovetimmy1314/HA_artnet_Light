@@ -12,7 +12,7 @@ from homeassistant.config_entries import (
     ConfigEntry,
     ConfigFlow,
     ConfigFlowResult,
-    OptionsFlow,
+    OptionsFlowWithReload,
 )
 from homeassistant.const import CONF_HOST, CONF_NAME, CONF_PORT
 from homeassistant.core import callback
@@ -179,6 +179,51 @@ class ArtNetConfigFlow(ConfigFlow, domain=DOMAIN):
             errors=errors,
         )
 
+    # ------------------------------------------------------------ reconfigure
+
+    async def async_step_reconfigure(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
+        """Change the address/port/name of a node; fixtures are kept (D-020)."""
+        entry = self._get_reconfigure_entry()
+        errors: dict[str, str] = {}
+        if user_input is not None:
+            host = user_input[CONF_HOST].strip()
+            port = int(user_input[CONF_PORT])
+            name = (user_input.get(CONF_NAME) or "").strip() or DEFAULT_NAME
+            # Discovered nodes are keyed by MAC and keep it; manual ones by host:port.
+            unique_id = entry.unique_id if entry.data.get(CONF_MAC) else f"{host}:{port}"
+            if not _valid_host(host):
+                errors[CONF_HOST] = "invalid_host"
+            elif any(
+                other.entry_id != entry.entry_id
+                and (
+                    other.unique_id == unique_id
+                    or (other.data.get(CONF_HOST) == host and other.data.get(CONF_PORT) == port)
+                )
+                for other in self._async_current_entries()
+            ):
+                errors["base"] = "already_configured"
+            else:
+                return self.async_update_reload_and_abort(
+                    entry,
+                    unique_id=unique_id,
+                    title=f"{name} ({host})",
+                    data_updates={CONF_HOST: host, CONF_PORT: port, CONF_NAME: name},
+                )
+
+        defaults = user_input or entry.data
+        return self.async_show_form(
+            step_id="reconfigure",
+            data_schema=vol.Schema(
+                {
+                    vol.Required(CONF_HOST, default=defaults.get(CONF_HOST, "")): TextSelector(),
+                    vol.Required(CONF_PORT, default=defaults.get(CONF_PORT, DEFAULT_PORT)): _number(1, 65535),
+                    vol.Optional(CONF_NAME, default=defaults.get(CONF_NAME) or DEFAULT_NAME): TextSelector(),
+                }
+            ),
+            errors=errors,
+            description_placeholders={"name": entry.title},
+        )
+
     # -------------------------------------------------------------- discovery
 
     async def async_step_integration_discovery(self, discovery_info: dict[str, Any]) -> ConfigFlowResult:
@@ -228,8 +273,11 @@ class ArtNetConfigFlow(ConfigFlow, domain=DOMAIN):
         )
 
 
-class ArtNetOptionsFlow(OptionsFlow):
-    """Manage fixtures and output settings of a node."""
+class ArtNetOptionsFlow(OptionsFlowWithReload):
+    """Manage fixtures and output settings of a node.
+
+    Saving changed options reloads the entry, so entities follow at once (D-004, D-020).
+    """
 
     def __init__(self) -> None:
         self._edit_id: str | None = None

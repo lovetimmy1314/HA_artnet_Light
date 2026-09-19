@@ -119,3 +119,15 @@
 - **背景**：纯文档提交（Plan/DECISIONS/README/CLAUDE.md）也会跑一遍 CI，白白消耗 Actions 时间。
 - **决定**：`push` 只看 `main` 分支和 `v*` tag，分支推送用 `paths` 过滤：`custom_components/`、`tests/`、`tools/`、`hacs.json`、`requirements_test.txt`、`pytest.ini`、`.github/workflows/`；PR 用同一组路径（YAML 锚点复用）。tag 推送不受 `paths` 限制，每个版本都会跑。
 - **理由/代价**：文档改动不再触发 CI；代价是 README 改动不会重新跑 HACS 检查（README 不在它的检查项里），新增代码目录时要记得加进路径列表。
+
+## D-020 节点地址用 Reconfigure 修改；选项流改用 OptionsFlowWithReload
+- **日期**：2026-09-19 · **状态**：采纳（D-004 的重载方式由此改变）
+- **背景**：节点换 IP 后只能删掉重加，灯具配置会全部丢失。另外，条目上挂的更新监听器会在任何条目更新时重载；HA 2026.9 对「有更新监听器的条目又由流程触发重载」报弃用警告（2026.12 起会失效），自动发现更新 IP 时已经触发这个警告，新加的 Reconfigure 也会触发。
+- **决定**：新增 `async_step_reconfigure`，可改 host / port / name，用 `async_update_reload_and_abort` 保存。自动发现的节点保留 MAC 唯一 ID；手动节点的唯一 ID 改为新的 `host:port`。与其他条目的唯一 ID 或 host+port 冲突时，在表单里提示 `already_configured`，不直接中止。节点的 `universes` 列表不在这里改。选项流改继承 `OptionsFlowWithReload`，删除 `add_update_listener`，重载都交给 HA。
+- **理由/代价**：灯具存在 options 里，与地址无关，改地址后重载即可原样恢复。旧地址不补发全 0：换 IP 通常是同一台设备，旧地址上已经没有设备。代价：如果是换成另一台节点，旧节点会保持最后一帧，需要手动关灯或断电。`OptionsFlowWithReload` 只在选项真的变化时才重载，保存相同内容不再重载，这个行为是想要的。
+
+## D-021 集成图标随集成一起发布（`brand/`）
+- **日期**：2026-09-19 · **状态**：采纳
+- **背景**：集成在 HA 里没有图标。HA 2026.3 起，自定义集成可以在自己目录的 `brand/` 下放 `icon.png` 等文件，不必再向 home-assistant/brands 提交。
+- **决定**：提供 `brand/icon.png`（256×256）和 `icon@2x.png`（512×512），图案是 DMX 五芯接口，针脚为 RGBWA 五色，底为靛蓝圆角方块；圆角方块在深色主题里也清楚，所以不单独做 `dark_icon`。没有 logo 时 HA 用 icon 代替。图片由 `tools/make_icon.py`（Pillow，不是项目依赖，在一次性容器里运行）生成。
+- **理由/代价**：最低版本已是 2026.9（D-015），所以一定支持。代价：HACS 商店列表的图标仍从 brands 仓库取，所以那里仍没有图标；CI 继续忽略 brands 检查。

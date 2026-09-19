@@ -2,6 +2,18 @@
 
 格式参考 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.1.0/)，版本遵循 [SemVer](https://semver.org/lang/zh-CN/)。版本号以 `custom_components/artnet_light/manifest.json` 为准，与 git tag `vX.Y.Z` 一致。
 
+## [0.3.0] - 2026-09-19
+
+### 新增
+- 修改节点地址：节点条目 ⋮ 菜单 →「重新配置」，可修改 IP、端口、名称，灯具配置全部保留；手动添加的节点会同步更新唯一 ID（`IP:端口`），旧地址可以再次添加
+- 集成图标：`brand/icon.png`、`icon@2x.png`（DMX 五芯接口，RGBWA 针脚），HA 2026.3 起直接使用集成目录里的图标；生成脚本 `tools/make_icon.py`
+
+### 变更
+- 选项流改用 `OptionsFlowWithReload`，去掉条目更新监听器：修改选项时由 HA 负责重载；也消除了自动发现更新节点 IP 时 HA 报的弃用警告（2026.12 起会失效）
+
+### 测试
+- 新增 HA 测试：重新配置手动节点（非法 IP、与其他节点冲突、成功后地址/唯一 ID/标题/设备名更新、灯具和亮灯状态保留、旧地址可重新添加）；重新配置自动发现的节点保留 MAC 唯一 ID；自动发现更新 IP 后控制器指向新地址且无弃用警告
+
 ## [0.2.2] - 2026-09-19
 
 ### 修复

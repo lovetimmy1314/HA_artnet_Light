@@ -9,5 +9,5 @@
   "iot_class": "local_push",
   "issue_tracker": "https://github.com/lovetimmy1314/HA_artnet_Light/issues",
   "requirements": [],
-  "version": "0.2.2"
+  "version": "0.3.0"
 }

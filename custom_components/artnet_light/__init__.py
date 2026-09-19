@@ -74,8 +74,6 @@ async def async_setup_entry(hass: HomeAssistant, entry: ArtNetConfigEntry) -> bo
     controller.async_start_sending(
         lambda coro, name: entry.async_create_background_task(hass, coro, name)
     )
-
-    entry.async_on_unload(entry.add_update_listener(_async_update_listener))
     return True
 
 
@@ -96,11 +94,6 @@ def _async_remove_stale(hass: HomeAssistant, entry: ConfigEntry, fixture_ids: se
         if entry.entry_id in ids or ids & fixture_ids:
             continue
         device_registry.async_remove_device(device.id)
-
-
-async def _async_update_listener(hass: HomeAssistant, entry: ConfigEntry) -> None:
-    """Options changed (fixture added/edited/removed): reload so entities follow."""
-    await hass.config_entries.async_reload(entry.entry_id)
 
 
 async def async_unload_entry(hass: HomeAssistant, entry: ArtNetConfigEntry) -> bool:

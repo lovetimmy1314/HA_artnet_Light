@@ -1,7 +1,7 @@
 # Plan: Art-Net Light (HA custom integration)
 
 > 活文档：每完成/变更一项就更新状态。设计取舍记录在 [DECISIONS.md](DECISIONS.md)。
-> 最近更新：2026-09-19（v0.2.2；仓库公开，CI 全绿）
+> 最近更新：2026-09-19（v0.3.0，修改节点地址 + 集成图标）
 
 ## 目标
 HACS 可安装的 Home Assistant 自定义集成 `artnet_light`：
@@ -52,6 +52,12 @@ HACS 可安装的 Home Assistant 自定义集成 `artnet_light`：
 - [x] 仓库改公开后 CI 全绿：hassfest、HACS、测试（2026-09-19，D-018）
 - [x] 建 GitHub Release v0.2.2（HACS 优先按 Release 安装）
 - [x] CI 只在代码/版本变动时触发（D-019）
+
+### v0.3.0（2026-09-19）
+- [x] 修改节点 IP/端口/名称：Reconfigure 流程，灯具保留（D-020）
+- [x] 选项流改用 `OptionsFlowWithReload`，去掉更新监听器（D-020）
+- [x] 集成图标 `brand/`（D-021）
+- [ ] 部署到线上 HA，界面里确认图标显示、重新配置可用
 - [x] 关灯状态下重启会丢失上次亮度/颜色 → 用 `ExtraStoredData` 保存（v0.1.3，D-014）
 - [x] 接真实 Art-Net 节点验证（2026-09-19，用户验证）
 

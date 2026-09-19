@@ -21,14 +21,25 @@
       "discovery_confirm": {
         "title": "Art-Net node found",
         "description": "Add **{name}** at {host} (universes: {universes})?"
+      },
+      "reconfigure": {
+        "title": "Change node address",
+        "description": "Change the address, port or name of **{name}**. Fixtures and their settings are kept.",
+        "data": {
+          "host": "IP / broadcast address",
+          "port": "Port",
+          "name": "Name"
+        }
       }
     },
     "error": {
-      "invalid_host": "Enter a valid IPv4 address."
+      "invalid_host": "Enter a valid IPv4 address.",
+      "already_configured": "Another configured node already uses this address and port."
     },
     "abort": {
       "already_configured": "This node is already configured.",
-      "already_in_progress": "This node is already being set up."
+      "already_in_progress": "This node is already being set up.",
+      "reconfigure_successful": "Node address updated."
     }
   },
   "options": {
