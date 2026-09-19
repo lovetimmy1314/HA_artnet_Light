@@ -1,7 +1,7 @@
 # Plan: Art-Net Light (HA custom integration)
 
 > 活文档：每完成/变更一项就更新状态。设计取舍记录在 [DECISIONS.md](DECISIONS.md)。
-> 最近更新：2026-09-19（v0.2.2，真实设备验证通过）
+> 最近更新：2026-09-19（v0.2.2；CI：补 LICENSE / topics，仓库改公开）
 
 ## 目标
 HACS 可安装的 Home Assistant 自定义集成 `artnet_light`：
@@ -48,7 +48,9 @@ HACS 可安装的 Home Assistant 自定义集成 `artnet_light`：
 - [x] 在真实界面里走一遍：用户在 HA 界面手动操作并接入真实设备，功能正常（2026-09-19，用户验证）
 - [x] git 仓库初始化，v0.1.0 已提交并打 tag
 - [x] 替换 manifest 中的占位 URL 与 codeowners（v0.2.2）
-- [ ] 推到 GitHub，跑通 CI
+- [x] 推到 GitHub（hassfest、测试通过；HACS 检查因仓库私有、无 LICENSE/topics 失败 → 加 Apache-2.0 LICENSE、topics，仓库改公开）
+- [ ] 仓库改公开后确认 HACS 检查通过
+- [ ] 建 GitHub Release（HACS 优先按 Release 安装）
 - [x] 关灯状态下重启会丢失上次亮度/颜色 → 用 `ExtraStoredData` 保存（v0.1.3，D-014）
 - [x] 接真实 Art-Net 节点验证（2026-09-19，用户验证）
 

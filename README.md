@@ -73,3 +73,7 @@ python -m pytest -q tests/ha
 ```bash
 python tools/fake_node.py --name TestNode --universes 0 1
 ```
+
+## 许可证
+
+[Apache-2.0](LICENSE)
