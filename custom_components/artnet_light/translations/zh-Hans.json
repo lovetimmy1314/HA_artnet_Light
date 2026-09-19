@@ -1,0 +1,149 @@
+{
+  "config": {
+    "flow_title": "{name} ({host})",
+    "step": {
+      "user": {
+        "title": "添加 Art-Net 节点",
+        "description": "在局域网中发现了 {count} 个 Art-Net 节点。请选择一个，或手动输入地址。",
+        "data": { "device": "节点" }
+      },
+      "manual": {
+        "title": "Art-Net 节点地址",
+        "description": "输入 Art-Net 节点（网关）的 IP，也可以填广播地址，例如 192.168.1.255。",
+        "data": { "host": "网关 IP / 广播地址", "port": "端口", "name": "名称" }
+      },
+      "discovery_confirm": {
+        "title": "发现 Art-Net 节点",
+        "description": "是否添加 **{name}**（{host}，Universe：{universes}）？"
+      }
+    },
+    "error": { "invalid_host": "请输入有效的 IPv4 地址。" },
+    "abort": {
+      "already_configured": "该节点已经配置过了。",
+      "already_in_progress": "该节点正在配置中。"
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Art-Net 节点选项",
+        "description": "已配置 {count} 个灯具。",
+        "menu_options": {
+          "add_fixture": "➕ 添加新灯具",
+          "select_fixture": "✏️ 修改/删除已有灯具",
+          "send_settings": "⚙️ 发送设置"
+        }
+      },
+      "add_fixture": {
+        "title": "添加新灯具",
+        "data": {
+          "name": "灯具名称",
+          "type": "类型",
+          "universe": "Universe",
+          "start_channel": "起始 DMX 通道 (1~512)",
+          "bits": "精度"
+        },
+        "data_description": {
+          "universe": "15 位 Art-Net 端口地址（Net:SubNet:Universe），范围 0~32767。",
+          "bits": "16 位时每个颜色占两个通道（粗调 + 细调）。"
+        },
+        "sections": {
+          "advanced": {
+            "name": "高级参数",
+            "data": {
+              "channel_order": "通道顺序",
+              "cct_mode": "CCT 通道模式",
+              "min_kelvin": "最暖色温",
+              "max_kelvin": "最冷色温",
+              "min_output": "最小 DMX 输出",
+              "max_output": "最大 DMX 输出"
+            },
+            "data_description": {
+              "channel_order": "留空使用默认顺序。字母：R G B，W=（暖）白，C=冷白，I=亮度，T=色温。例：GRB、WC、RGBWC、TI。",
+              "min_output": "最低非零亮度对应的 DMX 值。",
+              "max_output": "满亮度对应的 DMX 值。"
+            }
+          }
+        }
+      },
+      "select_fixture": {
+        "title": "选择灯具",
+        "data": { "fixture": "灯具" }
+      },
+      "edit_fixture": {
+        "title": "修改 {name}",
+        "data": {
+          "name": "灯具名称",
+          "type": "类型",
+          "universe": "Universe",
+          "start_channel": "起始 DMX 通道 (1~512)",
+          "bits": "精度",
+          "delete": "删除此灯具"
+        },
+        "sections": {
+          "advanced": {
+            "name": "高级参数",
+            "data": {
+              "channel_order": "通道顺序",
+              "cct_mode": "CCT 通道模式",
+              "min_kelvin": "最暖色温",
+              "max_kelvin": "最冷色温",
+              "min_output": "最小 DMX 输出",
+              "max_output": "最大 DMX 输出"
+            },
+            "data_description": {
+              "channel_order": "留空使用默认顺序。字母：R G B，W=（暖）白，C=冷白，I=亮度，T=色温。例：GRB、WC、RGBWC、TI。"
+            }
+          }
+        }
+      },
+      "send_settings": {
+        "title": "发送设置",
+        "data": {
+          "send_mode": "发送模式",
+          "keepalive": "保活间隔",
+          "fps": "连续发送帧率",
+          "default_transition": "默认渐变时间"
+        },
+        "data_description": {
+          "keepalive": "“变化即发”模式下，每隔这么久重发一次全部 Universe，防止节点超时熄灭。",
+          "fps": "仅在“连续发送”模式下生效。"
+        }
+      }
+    },
+    "error": {
+      "name_required": "请输入名称。",
+      "invalid_order": "通道顺序与灯具类型不匹配（字母或长度不对）。",
+      "invalid_kelvin_range": "最暖色温必须低于最冷色温。",
+      "invalid_output_range": "最小输出必须小于最大输出。",
+      "channel_overflow": "该灯具将占用到第 {end} 通道，超出 512。",
+      "channel_overlap": "通道与 {conflict} 重叠。"
+    },
+    "abort": { "fixture_not_found": "该灯具已不存在。" }
+  },
+  "selector": {
+    "device": { "options": { "manual": "手动输入地址…" } },
+    "fixture_type": {
+      "options": {
+        "dimmer": "Dimmer（单色调光）",
+        "cct": "CCT（双色温）",
+        "rgb": "RGB",
+        "rgbw": "RGBW",
+        "rgbww": "RGBWW（RGB + 冷白 + 暖白）"
+      }
+    },
+    "bits": { "options": { "8": "8 位", "16": "16 位" } },
+    "cct_mode": {
+      "options": {
+        "cold_warm": "冷白 + 暖白 两路通道",
+        "intensity_temp": "亮度 + 色温 两个通道"
+      }
+    },
+    "send_mode": {
+      "options": {
+        "on_change": "变化即发 + 定时保活",
+        "continuous": "按固定帧率连续发送"
+      }
+    }
+  }
+}

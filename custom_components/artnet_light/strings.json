@@ -1,0 +1,149 @@
+{
+  "config": {
+    "flow_title": "{name} ({host})",
+    "step": {
+      "user": {
+        "title": "Add Art-Net node",
+        "description": "Found {count} Art-Net node(s) on the network. Pick one, or enter the address manually.",
+        "data": { "device": "Node" }
+      },
+      "manual": {
+        "title": "Art-Net node address",
+        "description": "Enter the IP of the Art-Net node, or a broadcast address such as 192.168.1.255.",
+        "data": { "host": "IP / broadcast address", "port": "Port", "name": "Name" }
+      },
+      "discovery_confirm": {
+        "title": "Art-Net node found",
+        "description": "Add **{name}** at {host} (universes: {universes})?"
+      }
+    },
+    "error": { "invalid_host": "Enter a valid IPv4 address." },
+    "abort": {
+      "already_configured": "This node is already configured.",
+      "already_in_progress": "This node is already being set up."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Art-Net node options",
+        "description": "{count} fixture(s) configured.",
+        "menu_options": {
+          "add_fixture": "➕ Add fixture",
+          "select_fixture": "✏️ Edit / delete fixture",
+          "send_settings": "⚙️ Output settings"
+        }
+      },
+      "add_fixture": {
+        "title": "Add fixture",
+        "data": {
+          "name": "Fixture name",
+          "type": "Type",
+          "universe": "Universe",
+          "start_channel": "Start DMX channel (1-512)",
+          "bits": "Resolution"
+        },
+        "data_description": {
+          "universe": "15-bit Art-Net port address (Net:SubNet:Universe), 0-32767.",
+          "bits": "16-bit uses two channels per colour (coarse + fine)."
+        },
+        "sections": {
+          "advanced": {
+            "name": "Advanced",
+            "data": {
+              "channel_order": "Channel order",
+              "cct_mode": "CCT channel mode",
+              "min_kelvin": "Warmest colour temperature",
+              "max_kelvin": "Coldest colour temperature",
+              "min_output": "Minimum DMX output",
+              "max_output": "Maximum DMX output"
+            },
+            "data_description": {
+              "channel_order": "Leave empty for default. Letters: R G B, W = (warm) white, C = cold white, I = intensity, T = colour temperature. Examples: GRB, WC, RGBWC, TI.",
+              "min_output": "DMX value used for the lowest non-zero brightness.",
+              "max_output": "DMX value used for full brightness."
+            }
+          }
+        }
+      },
+      "select_fixture": {
+        "title": "Choose fixture",
+        "data": { "fixture": "Fixture" }
+      },
+      "edit_fixture": {
+        "title": "Edit {name}",
+        "data": {
+          "name": "Fixture name",
+          "type": "Type",
+          "universe": "Universe",
+          "start_channel": "Start DMX channel (1-512)",
+          "bits": "Resolution",
+          "delete": "Delete this fixture"
+        },
+        "sections": {
+          "advanced": {
+            "name": "Advanced",
+            "data": {
+              "channel_order": "Channel order",
+              "cct_mode": "CCT channel mode",
+              "min_kelvin": "Warmest colour temperature",
+              "max_kelvin": "Coldest colour temperature",
+              "min_output": "Minimum DMX output",
+              "max_output": "Maximum DMX output"
+            },
+            "data_description": {
+              "channel_order": "Leave empty for default. Letters: R G B, W = (warm) white, C = cold white, I = intensity, T = colour temperature. Examples: GRB, WC, RGBWC, TI."
+            }
+          }
+        }
+      },
+      "send_settings": {
+        "title": "Output settings",
+        "data": {
+          "send_mode": "Send mode",
+          "keepalive": "Keep-alive interval",
+          "fps": "Continuous frame rate",
+          "default_transition": "Default transition"
+        },
+        "data_description": {
+          "keepalive": "In on-change mode, all universes are re-sent this often so nodes don't time out.",
+          "fps": "Only used in continuous mode."
+        }
+      }
+    },
+    "error": {
+      "name_required": "Enter a name.",
+      "invalid_order": "Channel order doesn't match the fixture type (wrong letters or length).",
+      "invalid_kelvin_range": "Warmest colour temperature must be lower than the coldest.",
+      "invalid_output_range": "Minimum output must be lower than maximum output.",
+      "channel_overflow": "Fixture would end at channel {end}, beyond 512.",
+      "channel_overlap": "Channels overlap with {conflict}."
+    },
+    "abort": { "fixture_not_found": "That fixture no longer exists." }
+  },
+  "selector": {
+    "device": { "options": { "manual": "Enter address manually…" } },
+    "fixture_type": {
+      "options": {
+        "dimmer": "Dimmer (single colour)",
+        "cct": "CCT (tunable white)",
+        "rgb": "RGB",
+        "rgbw": "RGBW",
+        "rgbww": "RGBWW (RGB + cold + warm)"
+      }
+    },
+    "bits": { "options": { "8": "8-bit", "16": "16-bit" } },
+    "cct_mode": {
+      "options": {
+        "cold_warm": "Cold white + warm white channels",
+        "intensity_temp": "Intensity + colour temperature channels"
+      }
+    },
+    "send_mode": {
+      "options": {
+        "on_change": "On change + keep-alive",
+        "continuous": "Continuous at fixed frame rate"
+      }
+    }
+  }
+}

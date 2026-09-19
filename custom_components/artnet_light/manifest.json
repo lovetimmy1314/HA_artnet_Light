@@ -1,0 +1,13 @@
+{
+  "domain": "artnet_light",
+  "name": "Art-Net Light",
+  "codeowners": [],
+  "config_flow": true,
+  "dependencies": ["network"],
+  "documentation": "https://github.com/your-name/ha-artnet-light",
+  "integration_type": "hub",
+  "iot_class": "local_push",
+  "issue_tracker": "https://github.com/your-name/ha-artnet-light/issues",
+  "requirements": [],
+  "version": "0.1.0"
+}
