@@ -18,6 +18,7 @@ from .const import (
     DOMAIN,
 )
 from .controller import ArtNetController
+from .fixture import Fixture
 from .discovery import async_start_background_discovery
 
 PLATFORMS = [Platform.LIGHT]
@@ -46,7 +47,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ArtNetConfigEntry) -> bo
     entry.runtime_data = controller
 
     device_registry = dr.async_get(hass)
-    device_registry.async_get_or_create(
+    node = device_registry.async_get_or_create(
         config_entry_id=entry.entry_id,
         identifiers={(DOMAIN, entry.entry_id)},
         connections={(dr.CONNECTION_NETWORK_MAC, mac)} if (mac := entry.data.get(CONF_MAC)) else set(),
@@ -55,6 +56,19 @@ async def async_setup_entry(hass: HomeAssistant, entry: ArtNetConfigEntry) -> bo
         model="Art-Net node",
         configuration_url=f"http://{entry.data[CONF_HOST]}",
     )
+    # Fixture devices are created here (not via the entity's DeviceInfo) so they can be
+    # linked with via_device_id; DeviceInfo(via_device=...) is deprecated since HA 2026.x.
+    for data in options[CONF_FIXTURES]:
+        fixture = Fixture.from_dict(data)
+        device = device_registry.async_get_or_create(
+            config_entry_id=entry.entry_id,
+            identifiers={(DOMAIN, fixture.id)},
+            name=fixture.name,
+            manufacturer="Art-Net",
+            model=f"{fixture.type.upper()} {fixture.bits}-bit",
+        )
+        if device.via_device_id != node.id:
+            device_registry.async_update_device(device.id, via_device_id=node.id)
     _async_remove_stale(hass, entry, {f["id"] for f in options[CONF_FIXTURES]})
 
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)

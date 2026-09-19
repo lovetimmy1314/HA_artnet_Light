@@ -55,7 +55,6 @@ async def async_setup_entry(
         ArtNetLight(
             entry.runtime_data,
             Fixture.from_dict(data),
-            entry.entry_id,
             float(options[CONF_DEFAULT_TRANSITION]),
         )
         for data in options[CONF_FIXTURES]
@@ -74,7 +73,6 @@ class ArtNetLight(LightEntity, RestoreEntity):
         self,
         controller: ArtNetController,
         fixture: Fixture,
-        entry_id: str,
         default_transition: float,
     ) -> None:
         self._controller = controller
@@ -84,13 +82,8 @@ class ArtNetLight(LightEntity, RestoreEntity):
         self._attr_unique_id = fixture.id
         self._attr_color_mode = COLOR_MODES[fixture.type]
         self._attr_supported_color_modes = {self._attr_color_mode}
-        self._attr_device_info = DeviceInfo(
-            identifiers={(DOMAIN, fixture.id)},
-            name=fixture.name,
-            manufacturer="Art-Net",
-            model=f"{fixture.type.upper()} {fixture.bits}-bit",
-            via_device=(DOMAIN, entry_id),
-        )
+        # The device itself is created and linked to the node in __init__.async_setup_entry
+        self._attr_device_info = DeviceInfo(identifiers={(DOMAIN, fixture.id)})
         self._attr_extra_state_attributes = {
             "universe": fixture.universe,
             "dmx_start_channel": fixture.start_channel,

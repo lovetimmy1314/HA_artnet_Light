@@ -9,7 +9,7 @@ import pytest
 from homeassistant import config_entries
 from homeassistant.core import HomeAssistant
 from homeassistant.data_entry_flow import FlowResultType
-from homeassistant.helpers import entity_registry as er
+from homeassistant.helpers import device_registry as dr, entity_registry as er
 
 from custom_components.artnet_light.artnet import ArtNetNode
 from custom_components.artnet_light.const import DOMAIN
@@ -126,6 +126,17 @@ async def test_options_add_edit_delete_fixture(hass: HomeAssistant) -> None:
     state = hass.states.get("light.ke_ting_deng_dai")
     assert state is not None
     assert state.attributes["dmx_end_channel"] == 3
+
+    # fixture device hangs off the node device
+    devices = dr.async_get(hass)
+    node = next(
+        d
+        for d in dr.async_entries_for_config_entry(devices, entry.entry_id)
+        if (DOMAIN, entry.entry_id) in d.identifiers
+    )
+    fixture_dev = devices.async_get(er.async_get(hass).async_get("light.ke_ting_deng_dai").device_id)
+    assert fixture_dev.name == "客厅灯带"
+    assert fixture_dev.via_device_id == node.id
 
     # overlapping fixture is rejected
     result = await hass.config_entries.options.async_init(entry.entry_id)

@@ -76,3 +76,9 @@
 - **日期**：2026-09-19 · **状态**：采纳
 - **背景**：用 `loop.create_task` 创建的发送循环 HA 不知道，关闭时不会被取消（在 HA 2026.9 的测试里报了 lingering task）。
 - **决定**：`ArtNetController.async_start_sending(create_task=None)`；HA 层传入 `entry.async_create_background_task`。核心层仍然不导入 HA（D-009），不传参数时退回 `loop.create_task`，本地测试照常可用。
+
+## D-013 灯具设备在 setup_entry 中创建，用 via_device_id 挂到节点
+- **日期**：2026-09-19 · **状态**：采纳（补充 D-005）
+- **背景**：HA 2026.x 弃用了 `DeviceInfo(via_device=...)` / `async_get_or_create(via_device=...)`，2027.8 起失效；而 `async_get_or_create(via_device_id=...)` 在 2024.11 中还不存在。
+- **决定**：`async_setup_entry` 先建节点设备，再为每个灯具 `async_get_or_create` 设备，然后 `async_update_device(via_device_id=node.id)`（这个接口一直都有）。实体的 `DeviceInfo` 只带 `identifiers`。
+- **理由**：一套代码同时兼容最低版本和最新版本，不需要做版本判断。

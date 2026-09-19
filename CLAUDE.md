@@ -48,7 +48,13 @@ ssh -o BatchMode=yes root@192.168.1.167 'cd /root/work/HA_artnet_Light && docker
 python tools/fake_node.py --name TestNode --universes 0 1
 ```
 
-`--network host` is required on the Linux box: Docker injects `HTTP(S)_PROXY=http://127.0.0.1:20171` (v2raya on the host), unreachable from a bridged container. The live HA container there is `1Panel-home-assistant-oGES` (HA 2026.9.2) — don't restart it or touch its config without asking.
+`--network host` is required on the Linux box: Docker injects `HTTP(S)_PROXY=http://127.0.0.1:20171` (v2raya on the host), unreachable from a bridged container. The live HA container there is `1Panel-home-assistant-oGES` (HA 2026.9.2, host network, config at `/opt/1panel/apps/home-assistant/home-assistant/data`). Restarting it interrupts the user's home automations: ask before each deploy/restart.
+
+End-to-end (after the user OKs a restart):
+```bash
+tar --exclude=__pycache__ -C custom_components -cf - artnet_light | ssh -o BatchMode=yes root@192.168.1.167   'D=/opt/1panel/apps/home-assistant/home-assistant/data/custom_components; rm -rf $D/artnet_light && tar -x -C $D && docker restart 1Panel-home-assistant-oGES'
+```
+Drive flows/services through the HA REST API (`/api/config/config_entries/flow`, `/api/config/config_entries/options/flow`, `/api/services/light/...`) with the token in `/root/.ha_token` on the server (never print it; the local copy `HAkey.md` is git-ignored). Run `tools/fake_node.py` on this Windows machine (192.168.1.136) to receive DMX. Git Bash needs `MSYS_NO_PATHCONV=1` so `/api/...` arguments aren't rewritten into Windows paths.
 
 CI (`.github/workflows/validate.yml`): hassfest, HACS validation, both pytest runs on Ubuntu/Py3.13.
 

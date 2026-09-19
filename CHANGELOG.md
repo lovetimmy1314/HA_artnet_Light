@@ -2,6 +2,15 @@
 
 格式参考 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.1.0/)，版本遵循 [SemVer](https://semver.org/lang/zh-CN/)。版本号以 `custom_components/artnet_light/manifest.json` 为准，与 git tag `vX.Y.Z` 一致。
 
+## [0.1.2] - 2026-09-19
+
+### 修复
+- 适配 HA 2026.x 对 `DeviceInfo(via_device=...)` 的弃用（HA 2027.8 起会失效）：灯具设备改在 `async_setup_entry` 中创建，用 `via_device_id` 挂到节点下，兼容 2024.11 及以后的版本
+
+### 测试
+- 在线上 HA 2026.9.2 完成端到端验证：局域网 ArtPoll 发现、添加节点、添加灯具后实体立即出现、颜色/亮度/2 秒渐变/关灯的 DMX 值、重启后恢复状态并重发、设备归属
+- HA 测试新增断言：灯具设备挂在节点设备下
+
 ## [0.1.1] - 2026-09-19
 
 ### 修复
