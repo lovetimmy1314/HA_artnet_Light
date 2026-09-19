@@ -63,3 +63,16 @@
   - 每次代码修改完成后，由 agent 自动执行：改版本号 → 更新 `CHANGELOG.md` / `Plan.md` → 跑核心测试 → 一个提交（Conventional Commits 前缀）→ 打附注 tag。
   - 纯文档改动只提交（`docs:`），不升版本、不打 tag。
   - 直接在 `main` 上提交；push / 创建远程或 Release 需先征得同意。
+
+## D-011 远程 Linux 测试机 + 核心/HA 测试分开跑
+- **日期**：2026-09-19 · **状态**：采纳
+- **背景**：本机跑不了 HA；HA 的 pytest 插件会禁用 socket、替换事件循环，和核心层的真实 UDP 测试冲突。
+- **决定**：
+  - HA 测试在 `root@192.168.1.167` 上的一次性 `python:3.14` 容器里跑（得到和线上一样的 HA 2026.9.x），必须加 `--network host`，因为 Docker 注入的代理在 127.0.0.1:20171。
+  - `pytest.ini` 只收集 `tests/ha`；核心测试单独用 `-p no:homeassistant` 运行。CI 也拆成两步。
+- **代价**：在同一次 `pytest` 里跑不了全部测试，需要跑两条命令。
+
+## D-012 后台任务由宿主创建（发送器接受 task factory）
+- **日期**：2026-09-19 · **状态**：采纳
+- **背景**：用 `loop.create_task` 创建的发送循环 HA 不知道，关闭时不会被取消（在 HA 2026.9 的测试里报了 lingering task）。
+- **决定**：`ArtNetController.async_start_sending(create_task=None)`；HA 层传入 `entry.async_create_background_task`。核心层仍然不导入 HA（D-009），不传参数时退回 `loop.create_task`，本地测试照常可用。

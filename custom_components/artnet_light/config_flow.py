@@ -71,11 +71,10 @@ CONF_FIXTURE = "fixture"
 
 
 def _number(minimum: float, maximum: float, step: float = 1, unit: str | None = None) -> NumberSelector:
-    return NumberSelector(
-        NumberSelectorConfig(
-            min=minimum, max=maximum, step=step, mode=NumberSelectorMode.BOX, unit_of_measurement=unit
-        )
-    )
+    config = NumberSelectorConfig(min=minimum, max=maximum, step=step, mode=NumberSelectorMode.BOX)
+    if unit:  # the selector schema rejects unit_of_measurement=None
+        config["unit_of_measurement"] = unit
+    return NumberSelector(config)
 
 
 def _select(options: list[str], translation_key: str) -> SelectSelector:

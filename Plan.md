@@ -43,7 +43,7 @@ HACS 可安装的 Home Assistant 自定义集成 `artnet_light`：
 - [x] CI 工作流：hassfest + HACS validate + pytest
 
 ### 待办
-- [ ] 在 Linux / Python ≥3.12 上运行 `tests/ha/test_flows.py`（未执行过，可能需修正）
+- [x] 在 Linux 上运行 `tests/ha/test_flows.py`：py3.13/HA 2026.2.3 与 py3.14/HA 2026.9.2 均通过（v0.1.1 修复了 2 个问题）
 - [ ] 真实 HA 端到端验证：发现、手动添加、增删改灯具、颜色/渐变、重启恢复
 - [x] git 仓库初始化，v0.1.0 已提交并打 tag
 - [ ] 推到 GitHub，跑通 CI；替换 manifest 中的占位 URL 与 codeowners
@@ -51,6 +51,6 @@ HACS 可安装的 Home Assistant 自定义集成 `artnet_light`：
 - [ ] （可选）接真实 Art-Net 节点 / QLC+ 监视验证
 
 ## 验证方法
-1. `pytest tests/test_core.py` —— 协议字节、灯具换算、发送器（本机即可）
-2. `pytest`（Linux, Py≥3.12, `requirements_test.txt`）—— 配置流/选项流/实体
+1. `pytest tests/test_core.py -p no:homeassistant` —— 协议字节、灯具换算、发送器（本机即可）
+2. `pytest tests/ha`（在 Linux 测试机 192.168.1.167 的一次性 python:3.14 容器里跑，命令见 CLAUDE.md）—— 配置流/选项流/实体
 3. 局域网另一台电脑跑 `tools/fake_node.py`，HA 里添加集成，观察打印的 DMX 值

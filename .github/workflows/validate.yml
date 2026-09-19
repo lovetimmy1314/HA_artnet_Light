@@ -26,4 +26,5 @@ jobs:
         with:
           python-version: "3.13"
       - run: pip install -r requirements_test.txt
-      - run: pytest -q
+      - run: pytest -q tests/test_core.py -p no:homeassistant
+      - run: pytest -q tests/ha

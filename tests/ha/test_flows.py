@@ -32,6 +32,15 @@ def no_network():
         yield
 
 
+@pytest.fixture(autouse=True)
+async def unload_entries(hass: HomeAssistant):
+    """Unload every entry so the sender tasks don't linger past the test."""
+    yield
+    for entry in hass.config_entries.async_entries(DOMAIN):
+        await hass.config_entries.async_unload(entry.entry_id)
+    await hass.async_block_till_done()
+
+
 def scan_returns(nodes):
     return patch("custom_components.artnet_light.config_flow.async_scan", return_value=nodes)
 
@@ -145,4 +154,3 @@ async def test_options_add_edit_delete_fixture(hass: HomeAssistant) -> None:
     assert hass.states.get("light.ke_ting_deng_dai") is None
     assert er.async_get(hass).async_get("light.ke_ting_deng_dai") is None
 
-    await hass.config_entries.async_unload(entry.entry_id)

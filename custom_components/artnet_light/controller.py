@@ -6,9 +6,11 @@ Pure asyncio, no Home Assistant imports.
 from __future__ import annotations
 
 import asyncio
+from collections.abc import Callable, Coroutine
 import logging
 import socket
 import time
+from typing import Any
 
 from .artnet import DMX_UNIVERSE_SIZE, build_artdmx
 from .const import SEND_MODE_CONTINUOUS
@@ -57,10 +59,20 @@ class ArtNetController:
         sock.bind(("0.0.0.0", 0))
         self._transport, _ = await loop.create_datagram_endpoint(asyncio.DatagramProtocol, sock=sock)
 
-    def async_start_sending(self) -> None:
-        """Start the send loop (called once entities have restored their state)."""
+    def async_start_sending(
+        self, create_task: Callable[[Coroutine[Any, Any, None], str], asyncio.Task] | None = None
+    ) -> None:
+        """Start the send loop (called once entities have restored their state).
+
+        `create_task(coro, name)` lets the host own the task (Home Assistant passes
+        entry.async_create_background_task so it is cancelled on unload/shutdown).
+        """
         if self._sender is None:
-            self._sender = asyncio.get_running_loop().create_task(self._run())
+            coro = self._run()
+            if create_task:
+                self._sender = create_task(coro, f"artnet sender {self.host}")
+            else:
+                self._sender = asyncio.get_running_loop().create_task(coro)
 
     async def async_stop(self) -> None:
         tasks = [*self._fades.values()]

@@ -2,6 +2,16 @@
 
 格式参考 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.1.0/)，版本遵循 [SemVer](https://semver.org/lang/zh-CN/)。版本号以 `custom_components/artnet_light/manifest.json` 为准，与 git tag `vX.Y.Z` 一致。
 
+## [0.1.1] - 2026-09-19
+
+### 修复
+- 数字输入框在没有单位时传入 `unit_of_measurement=None`，HA 会拒绝，导致手动添加节点和添加/修改灯具的表单无法打开
+- 发送循环改由 HA 管理（`entry.async_create_background_task`），卸载和关闭 HA 时能被正确取消
+
+### 测试
+- HA 配置流/选项流测试首次在 Linux 上跑通：py3.13 + HA 2026.2.3、py3.14 + HA 2026.9.2
+- 核心测试和 HA 测试拆成两次 pytest 运行（HA 插件会禁用 socket、替换事件循环）
+
 ## [0.1.0] - 2026-09-19
 
 ### 新增

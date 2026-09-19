@@ -28,21 +28,29 @@ Doc-only changes (Plan/DECISIONS/README/CLAUDE.md) are committed with `docs:` bu
 
 ## Commands
 
-Dev machine is Windows with only Python 3.11 (no Docker, no HA install). A scratch venv with pytest is used for local runs.
+Dev machine is Windows with only Python 3.11 (no Docker, no HA install). A scratch venv with pytest is used for local runs. HA tests run on the Linux box `root@192.168.1.167` (see user-level CLAUDE.md) in throwaway containers.
+
+Core tests and HA tests **must be separate pytest invocations**: the HA pytest plugin blocks sockets and replaces the event loop, which breaks the controller tests. `pytest.ini` therefore only collects `tests/ha`.
 
 ```bash
 # HA-independent core tests (protocol, fixture math, UDP sender) — runs locally
-python -m pytest tests/test_core.py -q
-python -m pytest tests/test_core.py -q -k cct          # single test / subset
+python -m pytest tests/test_core.py -q -p no:homeassistant
+python -m pytest tests/test_core.py -q -p no:homeassistant -k cct     # single test / subset
 
-# Full suite incl. config/options flow tests — needs Linux + Python >=3.12
-pip install -r requirements_test.txt && pytest
+# HA flow tests on the Linux box. py3.14 resolves the same HA as production (2026.9.x); py3.13 caps at HA 2026.2.x.
+tar --exclude=.git --exclude=__pycache__ -cf - . | ssh -o BatchMode=yes root@192.168.1.167 \
+  'rm -rf /root/work/HA_artnet_Light && mkdir -p /root/work/HA_artnet_Light && tar -x -C /root/work/HA_artnet_Light'
+ssh -o BatchMode=yes root@192.168.1.167 'cd /root/work/HA_artnet_Light && docker run --rm --network host \
+  -v $PWD:/src -v /root/work/.pipcache:/root/.cache/pip -w /src python:3.14 \
+  sh -c "pip install -q -r requirements_test.txt >/dev/null 2>&1; python -m pytest -q tests/ha"'
 
 # Fake Art-Net node: answers ArtPoll, prints received DMX (run on a LAN machine other than the HA host; both need UDP 6454)
 python tools/fake_node.py --name TestNode --universes 0 1
 ```
 
-CI (`.github/workflows/validate.yml`): hassfest, HACS validation, full pytest on Ubuntu/Py3.13. `tests/ha/test_flows.py` has never been executed locally.
+`--network host` is required on the Linux box: Docker injects `HTTP(S)_PROXY=http://127.0.0.1:20171` (v2raya on the host), unreachable from a bridged container. The live HA container there is `1Panel-home-assistant-oGES` (HA 2026.9.2) — don't restart it or touch its config without asking.
+
+CI (`.github/workflows/validate.yml`): hassfest, HACS validation, both pytest runs on Ubuntu/Py3.13.
 
 ## Architecture
 

@@ -1,3 +1,5 @@
-"""Fixtures for Home Assistant tests (pytest-homeassistant-custom-component)."""
+"""Fixtures for Home Assistant tests.
 
-pytest_plugins = ["pytest_homeassistant_custom_component"]
+pytest-homeassistant-custom-component registers itself as a pytest plugin,
+so its fixtures (hass, enable_custom_integrations, ...) are available here.
+"""

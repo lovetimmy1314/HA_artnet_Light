@@ -59,7 +59,9 @@ async def async_setup_entry(hass: HomeAssistant, entry: ArtNetConfigEntry) -> bo
 
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
     # Entities have restored and written their levels; start transmitting.
-    controller.async_start_sending()
+    controller.async_start_sending(
+        lambda coro, name: entry.async_create_background_task(hass, coro, name)
+    )
 
     entry.async_on_unload(entry.add_update_listener(_async_update_listener))
     return True
