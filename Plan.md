@@ -57,7 +57,8 @@ HACS 可安装的 Home Assistant 自定义集成 `artnet_light`：
 - [x] 修改节点 IP/端口/名称：Reconfigure 流程，灯具保留（D-020）
 - [x] 选项流改用 `OptionsFlowWithReload`，去掉更新监听器（D-020）
 - [x] 集成图标 `brand/`（D-021）
-- [ ] 部署到线上 HA，界面里确认图标显示、重新配置可用
+- [x] 部署到线上 HA 2026.9.2（2026-09-20）：条目 `supports_reconfigure=true`，重新配置表单正常回填当前地址；`/api/brands/integration/artnet_light/icon.png` 返回本地图标（200，45906B）
+- [ ] 用户在界面里确认图标显示和重新配置（浏览器可能缓存旧图标，需强制刷新）
 - [x] 关灯状态下重启会丢失上次亮度/颜色 → 用 `ExtraStoredData` 保存（v0.1.3，D-014）
 - [x] 接真实 Art-Net 节点验证（2026-09-19，用户验证）
 
